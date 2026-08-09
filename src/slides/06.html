@@ -1,19 +1,58 @@
 <div class="slide-header">
-        <h2>왜 Container (cgroup)가 이상적인 FDP 제어 단위인가?</h2>
-        <div class="slide-subtitle">효율적인 데이터 격리를 위한 최적의 Granularity</div>
-      </div>
-      <div class="slide-body">
-        <div class="highlight-box">
-          <p style="font-size: 1.05rem; line-height: 1.7;">본 논문은 데이터센터 환경에서 <strong>컨테이너(cgroup) 단위</strong>가 데이터 수명 주기를 그룹화하고 FDP 스트림을 할당하기 위한 가장 이상적이고 실용적인 <strong>Granularity</strong>임을 제안합니다.</p>
-        </div>
-        <div class="grid-2" style="margin-top: 1.5rem;">
-          <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
-            <h3 style="margin-bottom: 1rem;">1. 모든 I/O Path에 내장된 컨텍스트</h3>
-            <p><code>cgroup (blkcg)</code> 식별자는 VFS부터 Page Cache, Block Layer에 이르기까지 <strong>모든 I/O 경로에 기본적으로 태깅되어 유지</strong>됩니다. 따라서 애플리케이션의 수정 없이도 정확한 I/O 출처 추적과 스트림 맵핑이 자연스럽게 이루어집니다.</p>
-          </div>
-          <div class="card" style="border-color: rgba(52, 211, 153, 0.4);">
-            <h3 style="margin-bottom: 1rem;">2. 운영자(Operator) 친화적 관리 단위</h3>
-            <p>데이터센터와 클라우드 환경의 시스템 운영자(Operator)는 이미 쿠버네티스(Kubernetes) 등 오케스트레이터를 통해 컨테이너(cgroup) 단위로 자원을 격리하고 관리하고 있습니다. 따라서 이를 FDP 스토리지 격리 기준으로 활용하는 것은 기존의 인프라 관리 체계와 완벽하게 부합합니다.</p>
-          </div>
-        </div>
-      </div>
+  <h2>관련 연구: 스트림을 <em>누가</em> 정하는가</h2>
+  <div class="slide-subtitle">기존 연구는 전부 이 질문에 대한 서로 다른 답이었습니다</div>
+</div>
+<div class="slide-body">
+  <table class="datatable">
+    <thead>
+      <tr>
+        <th style="width: 15%;">결정 주체</th>
+        <th style="width: 24%;">대표 사례</th>
+        <th style="width: 10%;">앱 수정</th>
+        <th style="width: 14%;">buffered·writeback</th>
+        <th>남는 문제</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>애플리케이션</strong></td>
+        <td>CacheLib 등<br><span style="color: var(--text-muted); font-size: 0.85rem;">io_uring passthrough</span></td>
+        <td style="color: var(--accent-red); font-weight: 700;">필요</td>
+        <td style="color: var(--accent-red); font-weight: 700;">미도달</td>
+        <td>상용 앱의 I/O 엔진을 직접 고쳐야 합니다. 대부분의 배포 환경에는 적용할 수 없습니다.</td>
+      </tr>
+      <tr class="group-start">
+        <td><strong>파일시스템</strong></td>
+        <td>FStream <span style="color: var(--text-muted); font-size: 0.85rem;">(파일 속성)</span><br>F2FS <span style="color: var(--text-muted); font-size: 0.85rem;">(세그먼트 온도)</span></td>
+        <td style="color: var(--accent-green); font-weight: 700;">불필요</td>
+        <td style="color: var(--accent-green); font-weight: 700;">도달</td>
+        <td>분류가 너무 거칠 수 있습니다. WARP의 측정에 따르면 F2FS는 Fileserver 사용자 데이터 쓰기의
+          <strong style="color: var(--accent-red);">99%를 단일 WARM RUH</strong>로 보냈습니다.</td>
+      </tr>
+      <tr class="group-start">
+        <td><strong>커널 추론</strong></td>
+        <td>AutoStream <span style="color: var(--text-muted); font-size: 0.85rem;">(LBA 패턴)</span><br>PCStream <span style="color: var(--text-muted); font-size: 0.85rem;">(발행 컨텍스트)</span></td>
+        <td style="color: var(--accent-green); font-weight: 700;">불필요</td>
+        <td style="color: var(--accent-green); font-weight: 700;">도달</td>
+        <td>인터페이스 변경은 피했지만, 그룹을 <strong>복원</strong>하려고 per-I/O 모니터링 비용을 지불합니다.
+          운영자가 테넌트 성격을 알아도 <strong>명시적으로 개입할 방법이 없습니다.</strong></td>
+      </tr>
+      <tr class="group-start highlight-row">
+        <td><strong>cgroup (운영자)</strong></td>
+        <td><strong>io.stream</strong> <span style="font-size: 0.85rem;">(이 논문)</span></td>
+        <td style="font-weight: 700;">불필요</td>
+        <td style="font-weight: 700;">도달</td>
+        <td>커널이 그룹을 추론할 필요가 없습니다. <strong>cgroup이 이미 그룹이고, 운영자가 이미 그 의도를 알고 있습니다.</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="highlight-box" style="margin-top: 0.3rem; padding: 1rem 1.3rem;">
+    <p style="font-size: 1.02rem;">
+      AutoStream은 <strong>관측</strong>으로 의도를 추측하지만, cgroup에는 <strong>운영자의 의도가 이미 명시</strong>되어 있습니다.
+      그래서 이 논문의 과제는 "의도를 추론하는 법"이 아니라 <strong>"이미 있는 의도를 어떻게 전달할 것인가"</strong>가 됩니다.
+    </p>
+  </div>
+</div>
+<div class="notes">
+  표의 마지막 두 열이 핵심이다. 앱 수정 없이 buffered까지 닿는 칸은 FS·커널추론·cgroup 세 줄뿐이고, 그중 운영자가 직접 지정할 수 있는 것은 마지막 줄뿐이다.
+</div>

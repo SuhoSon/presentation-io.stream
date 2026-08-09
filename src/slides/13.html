@@ -1,31 +1,68 @@
 <div class="slide-header">
-        <h2>Q3. "진짜 워크로드에서도 통할까?"</h2>
-        <div class="slide-subtitle">4종 상용 애플리케이션 12시간 구동: 앱별 할당 vs 수명별 묶음 할당</div>
+  <h2>Q2. "그럼 스트림을 많이 주면 되겠네?"</h2>
+  <div class="slide-subtitle">Stage 2 — cgroup 14개(hot 7 · cold 7)를 데이터 스트림 7개에 얹습니다. 충돌은 필연이고, 문제는 <em>누구끼리</em> 충돌하느냐입니다</div>
+</div>
+<div class="slide-body grid-2">
+  <div style="display: flex; flex-direction: column; gap: 0.6rem; min-height: 0;">
+    <div class="wafchart">
+      <div class="wafbar">
+        <span class="wafnum">1.00</span>
+        <div class="wafcol" data-tone="good" style="height: 1%;"></div>
+        <span class="waflabel"><b>Coherent</b><em>스트림 2개</em></span>
       </div>
-      <div class="slide-body grid-2">
-        <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
-          <img src="stage3.png" style="max-width: 100%; object-fit: contain;" alt="Real Workload Graph">
-        </div>
-        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
-          <h3 style="margin-bottom: 1.2rem; color: #38bdf8;">수명 기반 그룹핑(Grouping)의 실효성 증명</h3>
-          <ul style="font-size: 1.15rem; line-height: 2.2;">
-            <li><strong>기본 정책의 실패:</strong> 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">FDP-default <strong style="color:#f87171">1.70</strong> / 1-stream <strong style="color:#f87171">1.70</strong> (단일 스트림으로는 개선 불가)</span>
-            </li>
-            <li><strong>Per-App 매핑 (낭비적 이상향):</strong> 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">4개 앱 각각에 4개의 전용 스트림 할당 &nbsp;→&nbsp; WAF <strong style="color:#38bdf8">1.23</strong></span>
-            </li>
-            <li><strong style="color: #34d399;">Lifetime 매핑 (io.stream 제안):</strong> 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">수명이 비슷한 앱끼리 묶어 2~3개 스트림만 사용 &nbsp;→&nbsp; WAF <strong style="color:#10b981; font-size: 1.3rem;">1.27</strong> (거의 유사함!)</span>
-            </li>
-            <li style="margin-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 0.8rem;">
-              <strong>Mixed 매핑 (잘못된 묶음):</strong> 수명이 다른 앱들을 강제로 섞음.
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#f87171">1.58 / 1.80</strong> 폭주. 묶는 "기준"이 틀리면 재앙이 됨.</span>
-            </li>
-          </ul>
-        </div>
+      <div class="wafbar">
+        <span class="wafnum">1.07</span>
+        <div class="wafcol" data-tone="good" style="height: 5%;"></div>
+        <span class="waflabel"><b>Fallback</b><em>cold에만 전용</em></span>
       </div>
+      <div class="wafbar">
+        <span class="wafnum">1.30</span>
+        <div class="wafcol" data-tone="ok" style="height: 20%;"></div>
+        <span class="waflabel"><b>Blind</b><em>수명 무시 혼합</em></span>
+      </div>
+      <div class="wafbar">
+        <span class="wafnum">1.62</span>
+        <div class="wafcol" style="height: 41%;"></div>
+        <span class="waflabel"><b>FDP-default</b><em>스트림 0개</em></span>
+      </div>
+      <div class="wafbar">
+        <span class="wafnum">2.36</span>
+        <div class="wafcol" data-tone="bad" style="height: 91%;"></div>
+        <span class="waflabel"><b>Oblivious</b><em>7개 전부 사용</em></span>
+      </div>
+    </div>
+    <div class="axis-note">세로축 = 평균 WAF, 하단 기준선 1.00 (이론적 하한)</div>
+  </div>
 
-      <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #34d399; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #34d399;">
-        💡 교훈: 앱마다 스트림을 낭비할 필요 없다. "수명이 비슷하면 묶어도" 동등한 효과를 낸다.
-      </div>
+  <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+    <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(248, 113, 113, 0.5);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-red);">가진 걸 다 쓴 쪽이 꼴찌였습니다</h3>
+      <p style="font-size: 0.94rem;">
+        <strong>Oblivious</strong>는 cgroup id를 스트림에 <strong>해시</strong>합니다. 무작위가 아니라 균등하게 잘 퍼뜨리는데,
+        <strong>수명을 모릅니다.</strong> 7개를 전부 쓰고도 <strong style="color: var(--accent-red);">2.36</strong> —
+        스트림을 하나도 안 쓴 FDP-default(1.62)보다 <strong>한참 나쁩니다.</strong>
+      </p>
+    </div>
+    <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(52, 211, 153, 0.5);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-green);">무엇을 pin 하느냐가 안전을 결정합니다</h3>
+      <p style="font-size: 0.94rem;">
+        <strong>Fallback</strong>은 희소한 스트림을 <strong>수명이 긴 cold에 전용으로 주고</strong> hot을 기본 스트림으로 흘립니다. 결과는 <strong>1.07</strong>.
+        GC를 막는 핵심이 <strong>느리게 재활용되는 cold의 격리</strong>이기 때문입니다.
+      </p>
+      <p style="font-size: 0.94rem; margin-top: 0.55rem;">
+        <strong>Blind</strong>는 cold를 부분적으로만 pin해서 <strong>1.30</strong> — 이득의 상당 부분을 되돌려줍니다.
+      </p>
+    </div>
+    <div class="card" style="padding: 1rem 1.2rem;">
+      <p style="font-size: 0.96rem;">
+        <strong>Coherent는 단 2개로 1.00에 도달합니다.</strong>
+        스트림을 <em>공유하는 것</em> 자체는 해롭지 않습니다.
+        해로운 것은 <strong>부주의한 충돌</strong>입니다.
+      </p>
+    </div>
+  </div>
+</div>
+<div class="takeaway" data-tone="amber">💡 자원을 더 준다고 좋아지지 않는다. 변수는 스트림의 <em>개수</em>가 아니라 <em>배정</em>이다.</div>
+<div class="notes">
+  스트림이 부족한 현장에서 쓸 수 있는 유일한 규칙: 남는 스트림이 하나뿐이라면 cold에 줘라.
+</div>

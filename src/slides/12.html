@@ -1,36 +1,63 @@
 <div class="slide-header">
-        <h2>왜 스트림을 아껴 써야 하는가? (OP Constraint)</h2>
-        <div class="slide-subtitle">스트림 낭비가 펌웨어 내부 가용 자원(Effective OP)에 미치는 치명적 영향</div>
-      </div>
-      <div class="slide-body grid-3">
-        <div class="card" style="display: flex; flex-direction: column;">
-          <h3 style="text-align:center; color: #94a3b8;">1. No-FDP (글로벌 풀)</h3>
-          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
-            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#60a5fa;">최대 (Max)</strong></span>
-            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#f87171;">수행 불가</strong></span>
-          </div>
-          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">전체 Free Block을 단일 풀로 운용하여 디바이스 내 OP 비율이 극대화되나, 서로 다른 수명의 I/O가 섞여 필연적으로 WAF가 상승합니다.</p>
-        </div>
+  <h2>Q1. "FDP 켜면 되는 거 아냐?"</h2>
+  <div class="slide-subtitle">Stage 1 — raw · ext4 · xfs 세 경로에서 hot(5%)과 cold(95%)를 함께 돌린 결과</div>
+</div>
+<div class="slide-body grid-2">
+  <table class="datatable" style="align-self: start;">
+    <thead>
+      <tr>
+        <th>경로</th>
+        <th>구성</th>
+        <th style="text-align: right;">WAF</th>
+        <th style="text-align: right;">처리량<br><span style="font-weight: 400; font-size: 0.8rem;">MB/s</span></th>
+        <th style="text-align: right;">p99<br><span style="font-weight: 400; font-size: 0.8rem;">µs</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="path" rowspan="3">raw</td><td>No-FDP</td><td class="n">1.65</td><td class="n">3,516</td><td class="n">902</td></tr>
+      <tr><td>FDP-default</td><td class="n">1.65</td><td class="n">3,449</td><td class="n">908</td></tr>
+      <tr class="highlight-row"><td><strong>io.stream</strong></td><td class="n"><strong>1.00</strong></td><td class="n"><strong>6,295</strong></td><td class="n"><strong>375</strong></td></tr>
 
-        <div class="card" style="border-top: 3px solid #f59e0b; display: flex; flex-direction: column;">
-          <h3 style="text-align:center; color: #f59e0b;">2. FDP (적절한 스트림 수)</h3>
-          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
-            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#fbbf24;">안정적 확보</strong></span>
-            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#34d399;">완벽 격리</strong></span>
-          </div>
-          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">소수의 스트림(예: 2개)만 사용하여 수명이 비슷한 데이터끼리 묶으면(Coherent), 여유로운 Free Block(OP)을 유지하면서도 완벽한 격리가 가능합니다.</p>
-        </div>
+      <tr class="group-start"><td class="path" rowspan="4">ext4</td><td>No-FDP</td><td class="n">1.50</td><td class="n">3,785</td><td class="n">8,236</td></tr>
+      <tr><td>FDP-default</td><td class="n">1.53</td><td class="n">3,697</td><td class="n">8,432</td></tr>
+      <tr><td>Metadata-only</td><td class="n">1.53</td><td class="n">3,709</td><td class="n">8,345</td></tr>
+      <tr class="highlight-row"><td><strong>io.stream</strong></td><td class="n"><strong>1.00</strong></td><td class="n"><strong>5,280</strong></td><td class="n"><strong>599</strong></td></tr>
 
-        <div class="card" style="border-top: 3px solid #ef4444; display: flex; flex-direction: column;">
-          <h3 style="text-align:center; color: #ef4444;">3. FDP (스트림 과다 사용)</h3>
-          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
-            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#f87171;">고갈 (Starvation)</strong></span>
-            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#f87171;">성능 붕괴</strong></span>
-          </div>
-          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">각 스트림(RUH)은 <strong>독립된 활성 블록(Open Block)과 개별 GC 풀</strong>을 요구합니다. 많은 스트림을 열수록 펌웨어 내 통합 가용 OP가 조각나고 급감하여 시스템이 마비됩니다.</p>
-        </div>
-      </div>
-      
-      <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #a78bfa; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #a78bfa;">
-        💡 교훈: SSD의 빈 공간(OP) 제약 때문에 스트림은 "무조건 적게" 써야 한다. (그룹핑 필수)
-      </div>
+      <tr class="group-start"><td class="path" rowspan="4">xfs</td><td>No-FDP</td><td class="n">1.57</td><td class="n">3,649</td><td class="n">10,027</td></tr>
+      <tr><td>FDP-default</td><td class="n">1.61</td><td class="n">3,523</td><td class="n">10,158</td></tr>
+      <tr><td>Metadata-only</td><td class="n">1.61</td><td class="n">3,517</td><td class="n">10,289</td></tr>
+      <tr class="highlight-row"><td><strong>io.stream</strong></td><td class="n"><strong>1.00</strong></td><td class="n"><strong>6,100</strong></td><td class="n"><strong>526</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(248, 113, 113, 0.45);">
+      <h3 style="font-size: 1.1rem; color: var(--accent-red);">켜기만 하면 아무 일도 없습니다</h3>
+      <p style="font-size: 0.94rem;">raw에서 <strong>1.65 → 1.65</strong>, 변화 없음. 파일시스템에서는 오히려 <strong>1.50→1.53</strong>, <strong>1.57→1.61</strong>로 미세하게 나빠집니다.</p>
+      <p style="font-size: 0.94rem; margin-top: 0.6rem;">
+        <strong>왜 나빠지나:</strong> 회수 유닛을 세워두면 내부 용량이 조금씩 예약되어 <strong>유효 OP가 줄어듭니다.</strong>
+        배치를 관리하지 않으면 <strong style="color: var(--accent-red);">그 대가만 치르고 이득은 못 받습니다.</strong>
+      </p>
+    </div>
+    <div class="card" style="padding: 1.1rem 1.3rem;">
+      <h3 style="font-size: 1.1rem;">두 대조군이 증명하는 것</h3>
+      <p style="font-size: 0.94rem;">
+        No-FDP와 FDP-default가 raw에서 <strong>똑같이 1.65</strong>라는 사실은, 기본 스트림이 곧 기존 배치와 같음을 보여줍니다.
+        메타데이터만 떼어낸 <strong>Metadata-only도 1.53으로 제자리</strong>입니다.
+        <strong>따라서 이득의 출처는 FDP 자체도, 메타데이터 격리도 아닌 <span style="color: var(--accent-green);">테넌트 데이터의 수명 분리</span>입니다.</strong>
+      </p>
+    </div>
+    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(52, 211, 153, 0.5);">
+      <p style="font-size: 0.97rem;">
+        <strong style="color: var(--accent-green);">io.stream은 세 경로 모두 WAF 1.00.</strong>
+        GC가 사라지면서 처리량은 raw 기준 <strong>1.8배</strong>,
+        ext4 p99는 <strong>8.2 ms → 0.6 ms</strong>로 떨어집니다.
+        미디어 쓰기가 <strong>약 39% 줄어든</strong> 만큼 수명이 늘거나 OP를 깎을 여지가 생깁니다.
+      </p>
+    </div>
+  </div>
+</div>
+<div class="takeaway" data-tone="blue">💡 FDP는 켜는 것이 아니라 쓰는 것이다. 그리고 "FDP-default"라는 베이스라인을 고른 것이 이 논문의 절반이다.</div>
+<div class="notes">
+  숫자를 다 읽지 말 것. WAF 열에서 1.65/1.53/1.61이 나란히 있고 io.stream 줄만 1.00이라는 점, 그리고 p99 열의 자릿수가 바뀐다는 점 두 가지만 짚는다.
+</div>

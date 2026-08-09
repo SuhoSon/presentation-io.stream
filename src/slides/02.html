@@ -1,71 +1,35 @@
 <div class="slide-header">
-        <h2>배경지식: 쓰기 증폭(WAF)과 SSD 수명 감소</h2>
-        <div class="slide-subtitle">데이터 생명주기(Lifetime) 혼재로 인한 시스템 오버헤드</div>
-      </div>
-      <div class="slide-body grid-2">
-        <div class="css-diagram">
-          <div class="waf-equation">
-              <div class="waf-term">
-                  <span class="waf-value" style="color: #38bdf8;">1 Page</span>
-                  <span class="waf-label">Host Write</span>
-              </div>
-              <span class="waf-operator">+</span>
-              <div class="waf-term">
-                  <span class="waf-value" style="color: #f59e0b;">2 Pages</span>
-                  <span class="waf-label">GC Copy</span>
-              </div>
-              <span class="waf-operator">=</span>
-              <div class="waf-term">
-                  <span class="waf-value" style="color: #ef4444;">3 Pages</span>
-                  <span class="waf-label">Total NAND Write</span>
-              </div>
-              <div style="width: 2px; height: 40px; background: rgba(255,255,255,0.1); margin: 0 1rem;"></div>
-              <div class="waf-term">
-                  <span class="waf-value" style="color: #10b981;">WAF = 3.0</span>
-                  <span class="waf-label">Write Amplification</span>
-              </div>
-          </div>
-          
-          <div class="gc-flow-container">
-              <!-- Source Block -->
-              <div class="ssd-block-container" style="border-top: 3px solid #ef4444;">
-                  <div class="ssd-block-title">Victim Block (혼재)</div>
-                  <div class="page-row page-invalid">Invalid (Hot)</div>
-                  <div class="page-row page-valid-cold">Valid (Cold)</div>
-                  <div class="page-row page-invalid">Invalid (Hot)</div>
-                  <div class="page-row page-valid-cold">Valid (Cold)</div>
-                  <div style="position:absolute; bottom: -28px; width: 100%; text-align:center; color: #ef4444; font-size: 0.85rem; font-weight:600; left: 0;">Erase 대상 (Garbage)</div>
-              </div>
-
-              <div class="gc-arrow-box">
-                  <span style="color:#f59e0b; font-weight:700; font-size:0.95rem;">GC Valid Copy</span>
-                  <svg width="60" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M14 6l6 6-6 6"></path></svg>
-              </div>
-
-              <!-- Target Block -->
-              <div class="ssd-block-container" style="border-top: 3px solid #10b981;">
-                  <div class="ssd-block-title">Target Block (새 할당)</div>
-                  <div class="page-row page-valid-cold" style="opacity: 0.8;">Copied (Cold)</div>
-                  <div class="page-row page-valid-cold" style="opacity: 0.8;">Copied (Cold)</div>
-                  <div class="page-row page-valid-hot">New Write (Hot)</div>
-                  <div class="page-row page-free">Free Page</div>
-                  <div style="position:absolute; bottom: -28px; width: 100%; text-align:center; color: #10b981; font-size: 0.85rem; font-weight:600; left: 0;">데이터 재혼재 반복</div>
-              </div>
-          </div>
-        </div>
-        <div class="card">
-          <h3>쓰기 증폭(WAF)의 발생 원인과 한계</h3>
-          <ul>
-            <li><strong>비대칭적 구조:</strong> SSD는 쓰기 단위(Page)와 지우기 단위(Block)의 크기 불일치 현상이 존재합니다.</li>
-            <li><strong>GC 오버헤드:</strong> 상이한 업데이트 주기를 가진 데이터가 동일 블록에 혼재될 경우, 잉여 공간 확보를 위해 유효 데이터(Valid Page)를 다른 블록으로
-              복사(GC)해야 합니다.</li>
-            <li><strong>DWPD와 OP의 트레이드오프:</strong> WAF의 증가는 NAND 소모를 가속화합니다. 스펙 상의 <strong>DWPD(Drive Writes Per
-                Day)</strong>를 보장하기 위해서는 디바이스 내 OP(Over-Provisioning) 비율을 늘려야 하므로 원가가 크게 상승하며, 반대로 OP를 유지할 경우 수명 보증 수치가
-              현저히 저하됩니다.</li>
-          </ul>
-          <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; border-radius: 4px;">
-            <strong style="color: #38bdf8;">근본적 문제 제기:</strong> 호스트(OS)는 데이터의 특성(Hot/Cold)을 알고 있지만, SSD 컨트롤러는 이를 알지 못하는 <strong>'블랙박스(Black-box)' 구조</strong>로 인해 불필요한 데이터 혼재가 계속 발생합니다. 👉 <em>이에 대한 해결책이 필요합니다.</em>
-          </div>
-        </div>
-
+  <h2>오늘 답할 세 가지 질문</h2>
+  <div class="slide-subtitle">FDP를 처음 듣는 사람이 순서대로 품게 되는 의심들</div>
+</div>
+<div class="slide-body">
+  <div class="grid-3">
+    <div class="card" style="border-color: rgba(248, 113, 113, 0.4);">
+      <h3 style="color: var(--accent-red);">Q1</h3>
+      <p style="font-size: 1.05rem;"><strong>"FDP 지원 SSD를 사서 켜면 되는 거 아냐?"</strong></p>
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 0.6rem;">→ 켜기만 하면 아무 일도 일어나지 않는다. 오히려 조금 나빠진다.</p>
+    </div>
+    <div class="card" style="border-color: rgba(251, 191, 36, 0.4);">
+      <h3 style="color: var(--accent-amber);">Q2</h3>
+      <p style="font-size: 1.05rem;"><strong>"그럼 스트림을 많이 나눠 주면 되겠네?"</strong></p>
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 0.6rem;">→ 가진 스트림을 전부 쓴 정책이 하나도 안 쓴 것보다 나빴다.</p>
+    </div>
+    <div class="card" style="border-color: rgba(52, 211, 153, 0.4);">
+      <h3 style="color: var(--accent-green);">Q3</h3>
+      <p style="font-size: 1.05rem;"><strong>"합성 벤치 말고 진짜 앱에서도 통해?"</strong></p>
+      <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 0.6rem;">→ 무수정 컨테이너 4종, 12시간. 묶는 기준이 전부였다.</p>
+    </div>
+  </div>
+  <div class="highlight-box" style="margin-top: 0.2rem;">
+    <div class="highlight-title">진행 순서</div>
+    <p style="font-size: 1.02rem;">
+      <strong>배경</strong> (WAF와 FDP, 그리고 cgroup이 왜 등장하는가) →
+      <strong>설계</strong> (인터페이스·경로·스트림 부족 대응) →
+      <strong>평가</strong> (위 세 질문) →
+      <strong>한계와 열린 질문</strong>
+    </p>
+  </div>
+</div>
+<div class="notes">
+  이 세 질문을 칠판처럼 남겨두고, 평가 파트에서 하나씩 지워 나간다고 예고한다.
 </div>

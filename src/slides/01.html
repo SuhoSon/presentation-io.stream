@@ -1,29 +1,36 @@
 <div class="slide-header">
-        <h2>io.stream: 앱 수정 없는 쉬운 FDP 활용법</h2>
-        <div class="slide-subtitle">데이터 배치 제어권을 시스템 운영자(cgroup)에게!</div>
-      </div>
-      <div class="slide-body">
-        <div class="highlight-box">
-          <div class="highlight-title">논문의 핵심 요지 ("Who Decides Stream?")</div>
-          <p style="font-size: 1.05rem; line-height: 1.7;">최신 SSD 기술인 FDP(Flexible Data Placement)를 애플리케이션 소스코드 수정 없이,
-            <strong>cgroup(컨테이너) 단위로 데이터 배치를 제어할 수 있는 시스템 아키텍처</strong>를 제안합니다.</p>
-        </div>
-        <div class="grid-3" style="margin-top: 1rem;">
-          <div class="card">
-            <h3>저자 정보</h3>
-            <p><strong>손수호, 김진헌, 이기영</strong><br>Samsung Electronics</p>
-          </div>
-          <div class="card">
-            <h3>게재 학회</h3>
-            <p>ACM HotStorage '26<br>(Prague, Czech Republic)</p>
-          </div>
-          <div class="card">
-            <h3>핵심 성과</h3>
-            <ul style="padding-left: 0.5rem; margin-top: 0.5rem;">
-              <li style="margin-bottom: 0.4rem; font-size: 0.95rem;"><strong>무수정 지원:</strong> 레거시 워크로드 100% 호환</li>
-              <li style="margin-bottom: 0.4rem; font-size: 0.95rem;"><strong>운영자 주도:</strong> cgroup 단위의 Isolation</li>
-              <li style="margin-bottom: 0.4rem; font-size: 0.95rem;"><strong>초경량 구현:</strong> 커널 I/O 스택 수정(300 LOC)</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+  <h2>io.stream: 앱 수정 없이 FDP를 쓰는 법</h2>
+  <div class="slide-subtitle">데이터 배치의 결정권을 애플리케이션이 아니라 시스템 운영자(cgroup)에게</div>
+</div>
+<div class="slide-body">
+  <div class="highlight-box">
+    <div class="highlight-title">이 논문이 남기는 한 문장</div>
+    <p style="font-size: 1.15rem; line-height: 1.7;">
+      WAF를 지배하는 것은 <strong>스트림의 개수가 아니라 매핑의 수명 정합성(coherence)</strong>이다.
+      정합적인 매핑은 절반의 스트림으로 완전 격리에 필적하고, 비정합적인 매핑은 FDP를 아예 안 쓴 것보다 나쁠 수 있다.
+    </p>
+  </div>
+  <div class="grid-3" style="margin-top: 0.4rem;">
+    <div class="card">
+      <h3>저자</h3>
+      <p><strong>손수호, 김진헌, 이기영</strong><br>Samsung Electronics</p>
+    </div>
+    <div class="card">
+      <h3>게재</h3>
+      <p>ACM HotStorage '26<br>Prague, Czech Republic<br>
+        <span style="color: var(--text-muted); font-size: 0.9rem;">7쪽 워크숍 논문</span>
+      </p>
+    </div>
+    <div class="card">
+      <h3>기여</h3>
+      <ul style="padding-left: 0.2rem; margin-top: 0.4rem;">
+        <li style="margin-bottom: 0.35rem; font-size: 0.93rem;"><strong>앱 무수정:</strong> buffered·writeback 경로까지 커버</li>
+        <li style="margin-bottom: 0.35rem; font-size: 0.93rem;"><strong>운영자 주도:</strong> cgroup 단위 배치 정책</li>
+        <li style="margin-bottom: 0.35rem; font-size: 0.93rem;"><strong>최소 변경:</strong> block-cgroup 약 300줄</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="notes">
+  HotStorage는 완결된 시스템이 아니라 문제 제기·최소 증거·열린 질문을 싣는 워크숍이라는 점을 먼저 알려주고 시작한다.
+</div>

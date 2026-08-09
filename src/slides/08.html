@@ -1,74 +1,51 @@
 <div class="slide-header">
-        <h2>io.stream 스트림 할당 정책 및 동작 시나리오</h2>
-        <div class="slide-subtitle">sysfs 인터페이스를 통한 명시적 정책과 메타데이터 자동 격리(Free Metadata Isolation)</div>
-      </div>
-      <div class="slide-body grid-2">
-        <div class="mermaid" style="display: flex; align-items: center; justify-content: center;">
-          graph TD
-          subgraph Host ["Host OS (cgroup 계층)"]
-              TA["Tenant A (Container)"]
-              TB["Tenant B (Container)"]
-              R["Root (UID 0 Process)"]
-          end
-          
-          subgraph Kernel ["Linux Kernel"]
-              FS["FS Metadata (e.g., jbd2)"]
-          end
-          
-          subgraph IO_Stream ["io.stream Policy Engine"]
-              P_TA["Explicit Policy (RUH 1)"]
-              P_Hint["I/O Hint 우선 (Bypass)"]
-              P_TB["Explicit Policy (RUH 2)"]
-              P_R["Default Fallback (RUH 0)"]
-          end
-          
-          subgraph FDP ["NVMe FDP SSD"]
-              RU1[("RUH 1 (Tenant A)")]
-              RU3[("RUH 3 (Custom)")]
-              RU2[("RUH 2 (Tenant B)")]
-              RU0[("RUH 0 (Metadata)")]
-          end
-          
-          TA -->|"echo 1 > io.stream"| P_TA
-          TA -.->|"Stream ID 명시된 I/O"| P_Hint
-          TB -->|"echo 2 > io.stream"| P_TB
-          R -.->|"미설정 (기본값)"| P_R
-          FS -->|"커널 스레드 I/O"| P_R
-          
-          P_TA ==> RU1
-          P_Hint ==> RU3
-          P_TB ==> RU2
-          P_R ==> RU0
-          
-          style Host fill:transparent,stroke:#475569
-          style Kernel fill:transparent,stroke:#eab308,stroke-dasharray: 5 5
-          style IO_Stream fill:transparent,stroke:#34d399,stroke-width:2px
-          style FDP fill:transparent,stroke:#475569
-          style R fill:#1e293b,stroke:#94a3b8
-          style FS fill:#1e293b,stroke:#eab308
-          style TA fill:#1e293b,stroke:#818cf8
-          style TB fill:#1e293b,stroke:#818cf8
-          style P_R fill:#0f172a,stroke:#34d399
-          style P_TA fill:#0f172a,stroke:#34d399
-          style P_TB fill:#0f172a,stroke:#34d399
-          style P_Hint fill:#0f172a,stroke:#a855f7
-          style RU0 fill:#1e293b,stroke:#f59e0b,stroke-width:2px
-          style RU1 fill:#1e293b,stroke:#38bdf8,stroke-width:2px
-          style RU2 fill:#1e293b,stroke:#38bdf8,stroke-width:2px
-          style RU3 fill:#1e293b,stroke:#c084fc,stroke-width:2px
-        </div>
-        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
-          <h3 style="margin-bottom: 1.2rem;">할당 정책(Policies) 및 시나리오 동작</h3>
-          <ul style="line-height: 1.8;">
-            <li style="margin-bottom: 1rem;"><strong>명시적 할당 (Explicit Policy):</strong> cgroup v2의 <code>io.stream</code> 속성 노드에 스트림 ID를 기록하면, 해당 테넌트에서 발생하는 모든 I/O는 지정된 RUH로 확정 매핑됩니다. <br>
-              <code style="background: rgba(0,0,0,0.4); padding: 0.3rem 0.5rem; color: #34d399; font-size: 0.85rem; display: inline-block; margin-top: 0.4rem;">echo "259:0 1" > /sys/fs/cgroup/Tenant_A/io.stream</code>
-            </li>
-            <li style="margin-bottom: 1rem;"><strong>I/O Hint 우선 (Bypass):</strong> 같은 cgroup에서 발생한 I/O라도, 이미 Stream ID가 명시적으로 지정된 I/O의 경우 cgroup 정책에 의해 덮어씌워지지 않고 기존 Stream ID를 유지합니다.</li>
-            <li style="margin-bottom: 1rem;"><strong>기본 정책 (Default Fallback):</strong> 명시적으로 <code>io.stream</code>이 설정되지 않은 프로세스나 최상위 Root cgroup의 I/O는 모두 시스템 기본 스트림(RUH 0)으로 수렴합니다.</li>
-            <li style="margin-top: 1.2rem; color: #f87171;"><strong>🌟 메타데이터 자동 격리 (Free Metadata Isolation):</strong><br>
-              <span style="color: #cbd5e1;">ext4의 <code>jbd2</code> 저널링과 같은 메타데이터 쓰기는 기본 Root 컨텍스트로 처리되어 <strong>별도 튜닝 없이 사용자 데이터와 격리되는 부수적 효과(Free)</strong>를 얻습니다. 하지만 실험 결과(Metadata-only WAF 1.53), <strong>메타데이터 격리만으로는 WAF 개선 효과가 미미하며, 이득의 핵심 원천은 사용자 데이터의 철저한 수명 기반 격리</strong>입니다.</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+  <h2>설계 ①: 인터페이스와 우선순위</h2>
+  <div class="slide-subtitle">cgroup v2 인터페이스 파일 하나와, 앱을 절대 침범하지 않게 만드는 sentinel 규칙</div>
+</div>
+<div class="slide-body grid-2">
+  <div class="mermaid">
+    graph TD
+    BIO["bio 생성 시점<br/>bi_write_stream = WRITE_STREAM_NONE (−1)"]
+    Q1{"앱이 스트림을<br/>표명했는가?"}
+    A1["앱이 넣은 값을 사용<br/><b>0을 넣었어도 그 값이 이김</b>"]
+    Q2{"cgroup에 유효<br/>스트림이 있는가?"}
+    A2["<b>cgroup의 스트림을 찍음</b><br/>io.stream이 일하는 유일한 지점"]
+    A3["−1 → 0 으로 변환<br/>디바이스 기본 배치"]
+    BIO --> Q1
+    Q1 -->|"예"| A1
+    Q1 -->|"아니오 · −1 그대로"| Q2
+    Q2 -->|"예"| A2
+    Q2 -->|"아니오"| A3
+    style BIO fill:#1e293b,stroke:#94a3b8,stroke-width:2px
+    style Q1 fill:#0f172a,stroke:#c084fc,stroke-width:2px
+    style Q2 fill:#0f172a,stroke:#c084fc,stroke-width:2px
+    style A1 fill:#1e293b,stroke:#a855f7,stroke-width:2px
+    style A2 fill:#0f172a,stroke:#34d399,stroke-width:3px
+    style A3 fill:#1e293b,stroke:#f59e0b,stroke-width:2px
+  </div>
 
+  <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+    <div class="card" style="padding: 1.2rem;">
+      <h3 style="font-size: 1.12rem;">인터페이스</h3>
+      <code style="display: block; padding: 0.5rem 0.7rem; color: var(--accent-green); font-size: 0.86rem; margin-bottom: 0.7rem;">echo "259:0 1" &gt; /sys/fs/cgroup/tenant_A/io.stream</code>
+      <ul style="font-size: 0.94rem;">
+        <li><code>maj:min stream</code> 형식으로 <strong>디바이스별</strong>로 지정합니다.</li>
+        <li>기본 상태는 <code>inherit</code> — <strong>부모의 유효 스트림을 상속</strong>합니다.</li>
+        <li><code>0</code>을 직접 쓰면 <strong>디바이스 기본 배치를 강제</strong>합니다. 이는 <code>inherit</code>와 다른 동작입니다.</li>
+        <li>디바이스의 <code>max_write_streams</code>와 대조해 범위 밖 값은 거부합니다.</li>
+      </ul>
+    </div>
+    <div class="card" style="padding: 1.2rem; border-color: rgba(192, 132, 252, 0.45);">
+      <h3 style="font-size: 1.12rem; color: var(--accent-purple);">왜 −1과 0을 구분하는가</h3>
+      <p style="font-size: 0.94rem;">
+        <strong>"아무 말도 안 함"(−1)</strong>과 <strong>"기본 배치를 달라고 말함"(0)</strong>은 다릅니다.
+        이 구분 덕분에 앱이 명시한 값은 <strong>0이더라도 보존</strong>되고,
+        io.stream은 <strong style="color: var(--accent-purple);">앱이 비워둔 자리에만 값을 채우는 순수 가산적(additive) 기능</strong>이 됩니다.
+      </p>
+    </div>
+  </div>
+</div>
+<div class="takeaway" data-tone="purple">💡 앱이 말한 것은 절대 덮지 않는다. io.stream은 <em>아무도 말하지 않은 쓰기</em>에만 개입한다.</div>
+<div class="notes">
+  −1/0 구분이 없으면 "앱이 일부러 기본 스트림을 골랐다"와 "앱이 아무 설정도 안 했다"를 구별할 수 없어, 앱의 의도를 덮어쓰게 된다.
+</div>

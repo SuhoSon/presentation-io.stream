@@ -1,31 +1,40 @@
 <div class="slide-header">
-        <h2>Q2. "그럼 스트림 많이 주면 되겠네?"</h2>
-        <div class="slide-subtitle">스트림 프로비저닝 규모보다 '분배 정확도(Policy)'가 절대적인 이유</div>
-      </div>
-      <div class="slide-body grid-2">
-        <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
-          <img src="stage2.png" style="max-width: 100%; object-fit: contain;" alt="Stream Mapping Comparison Graph">
-        </div>
-        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
-          <h3 style="margin-bottom: 1.2rem; color: #f59e0b;">정책 없는 자원 할당의 재앙</h3>
-          <ul style="font-size: 1.15rem; line-height: 2.2;">
-            <li><strong>Oblivious (무작위 분산):</strong> 14개 cgroup에 7개 스트림 전량을 규칙 없이 매핑. 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#f87171">2.36</strong> 폭주. 스트림 1개짜리 FDP-default(1.62)보다 <strong>훨씬 나쁨</strong>.</span>
-            </li>
-            <li><strong>Blind (잘못된 분배):</strong> 수명을 무시하고 임의로 2개 스트림에 묶음. 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong>1.30</strong>. 성능을 깎아먹는 나쁜 매핑.</span>
-            </li>
-            <li style="margin-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 0.8rem;">
-              <strong>Fallback (우아한 저하):</strong> 스트림이 모자라서 여러 cgroup이 하나의 기본 스트림(RUH 0)으로 떨어질 때.
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#34d399">1.07</strong> 방어. 모자라도 시스템이 붕괴하지 않음을 증명.</span>
-            </li>
-            <li><strong>Coherent (정합성):</strong> 수명에 맞춰 정확히 매핑 (단 2개 스트림만 사용).
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#10b981; font-size: 1.3rem;">1.00</strong> 달성.</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+  <h2>평가 설정 — 그리고 왜 이렇게 측정했는가</h2>
+  <div class="slide-subtitle">후배들에게는 결과보다 이 슬라이드가 더 오래 쓸모 있습니다</div>
+</div>
+<div class="slide-body grid-2">
+  <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
+    <h3 style="color: var(--accent-blue);">플랫폼과 대조군</h3>
+    <ul style="font-size: 0.95rem;">
+      <li><strong>SSD:</strong> Samsung PM9D3a 4TB 데이터센터 FDP NVMe.
+        <strong>OP 7%</strong>, 단일 reclaim group, <strong>RUH 8개 — 기본 1개(비귀속 메타데이터) + 데이터용 7개</strong></li>
+      <li><strong>호스트:</strong> Intel Core i9-12900K / 64GB RAM / 수정된 Linux 7.0</li>
+      <li><strong>대조군은 동일 하드웨어·OP·펌웨어에서:</strong><br>
+        · <strong>No-FDP</strong> — FDP 모드 자체를 끔<br>
+        · <strong>FDP-default</strong> — FDP는 켜고 스트림은 아무도 지정하지 않음.
+        <strong style="color: var(--accent-amber);">오늘 무수정 스택이 FDP 드라이브에서 실제로 보는 상태</strong></li>
+      <li><strong>3단계 실험:</strong> ① raw·ext4·xfs 세 경로 검증 → ② raw에서 매핑 정책 스윕 → ③ 무수정 컨테이너 4종 12시간</li>
+      <li>모든 구성 <strong>3회 반복</strong>, 평균±표준편차 보고</li>
+    </ul>
+  </div>
 
-      <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #facc15; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #facc15;">
-        💡 교훈: 자원을 더 준다고 좋아지지 않는다. 스트림 개수가 아니라 "매핑"이 변수다.
-      </div>
+  <div class="card" style="border-color: rgba(52, 211, 153, 0.4);">
+    <h3 style="color: var(--accent-green);">리뷰어가 물고 늘어질 구멍을 미리 막는 법</h3>
+    <ul style="font-size: 0.95rem;">
+      <li><strong>매 실행 전 <code>nvme format</code> 후 꽉 채웁니다.</strong><br>
+        <span style="color: var(--text-muted);">갓 포맷한 미디어에서는 WAF가 1 근처라 차이가 안 보입니다. 채워야 덮어쓰기가 즉시 GC를 돌립니다.</span></li>
+      <li><strong><code>nodiscard</code>로 실행합니다.</strong><br>
+        <span style="color: var(--text-muted);">TRIM이 끼면 회수가 배치 덕인지 호스트 힌트 덕인지 구분할 수 없습니다.</span></li>
+      <li><strong>파일시스템을 일부러 몰아붙입니다.</strong> <span style="color: var(--text-muted);">(ext4 <code>commit=1</code> 등)
+        jbd2를 계속 돌게 해서 메타데이터 경로를 실제로 자극하려는 것입니다.</span></li>
+      <li><strong>WAF는 호스트가 아니라 디바이스가 잰 값입니다.</strong><br>
+        <span style="color: var(--text-muted);">SMART 로그 02h와 OCP 로그 C0h의 델타를 분당 샘플링해, 정상상태 구간의 비율로 계산합니다.</span></li>
+      <li><strong>실행 간 편차와 실행 내 편차를 둘 다 적습니다.</strong><br>
+        <span style="color: var(--text-muted);">"GC 피크를 찍은 게 아니라 안정된 고원"임을 증명하는 장치입니다.</span></li>
+    </ul>
+  </div>
+</div>
+<div class="takeaway" data-tone="blue">💡 스토리지 실험에서는 <em>측정 이전의 준비</em>가 결과의 신뢰도를 결정한다.</div>
+<div class="notes">
+  자기 실험을 설계할 때 그대로 가져다 쓸 체크리스트. 특히 preconditioning과 nodiscard는 빠뜨리면 결과 전체가 무의미해진다.
+</div>

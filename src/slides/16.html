@@ -1,0 +1,44 @@
+<div class="slide-header">
+  <h2>안 되는 것 / 아직 모르는 것</h2>
+  <div class="slide-subtitle">워크숍 논문의 미덕은 완결성이 아니라 한계를 정확히 그어 두는 데 있습니다</div>
+</div>
+<div class="slide-body grid-2">
+  <div class="card" style="border-color: rgba(129, 140, 248, 0.5);">
+    <h3 style="color: var(--accent-indigo);">설계상의 한계</h3>
+    <ul style="font-size: 0.96rem;">
+      <li><strong>cgroup 경계 ≠ 수명 경계.</strong>
+        한 컨테이너 안에도 수명이 제각각인 데이터가 섞여 있습니다. RocksDB의 짧은 WAL과 긴 SSTable을
+        <strong>매크로 제어만으로는 갈라낼 수 없습니다.</strong> 앱 내부는 per-I/O 태깅의 몫으로 남습니다.</li>
+      <li><strong>매핑을 사람이 정합니다.</strong>
+        고정된 서비스 카탈로그를 운영하는 환경에서는 가능하지만,
+        테넌트가 수시로 뜨고 지는 환경에서 <strong>정합성을 누가 공급할 것인가</strong>는 열려 있습니다.
+        이것이 논문이 스스로 "우리가 여는 정책 질문"이라고 부르는 지점입니다.</li>
+      <li><strong>파일시스템마다 다릅니다.</strong>
+        메타데이터 격리의 크기는 ext4의 jbd2와 XFS의 CIL이 다르게 동작합니다.
+        다만 <strong>데이터에 스탬프를 찍는 메커니즘 자체는 보편적</strong>입니다.</li>
+    </ul>
+  </div>
+
+  <div class="card" style="border-color: rgba(251, 191, 36, 0.5);">
+    <h3 style="color: var(--accent-amber);">증거의 한계</h3>
+    <ul style="font-size: 0.96rem;">
+      <li><strong>비대칭의 원인은 미규명.</strong>
+        같은 2개 스트림인데 <strong>{R,K}/{P,M}은 1.58, {R,M}/{P,K}는 1.80</strong>입니다.
+        어느 쌍이 섞이느냐에 따라 손해 폭이 다른데, <strong>펌웨어 내부를 볼 수 없어</strong> 이유를 밝히지 못했습니다.</li>
+      <li><strong>p99 개선의 기전은 가설입니다.</strong>
+        8.2 ms에서 0.6 ms로 떨어진 것은 블랙박스 바깥에서의 관측일 뿐,
+        <strong>정확히 어떤 FTL 큐가 해소되었는지</strong>는 확인하지 못했습니다.</li>
+      <li><strong>규모와 범위.</strong>
+        12시간은 유의미하지만 수년에 걸친 마모를 대변하지 못합니다.
+        단일 디바이스·단일 펌웨어·단일 reclaim group·OP 7%에서의 결과이며,
+        <strong>다른 벤더로의 일반화는 검증되지 않았습니다.</strong></li>
+      <li><strong>읽기가 없습니다.</strong>
+        4종 모두 쓰기 집약입니다. WAF는 쓰기 수명에만 좌우되므로 의도된 선택이지만,
+        읽기가 섞인 스위트는 <strong>디바이스의 읽기 거동을 재는 별개의 질문</strong>입니다.</li>
+    </ul>
+  </div>
+</div>
+<div class="takeaway" data-tone="purple">💡 "여기까지는 보였고 여기부터는 모른다"를 정확히 적는 것이 워크숍 논문의 본체다.</div>
+<div class="notes">
+  후배들에게: 한계 절은 논문의 약점이 아니라 다음 연구의 목록이다. 실제로 다음 장이 그 목록이다.
+</div>

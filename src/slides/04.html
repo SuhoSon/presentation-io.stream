@@ -1,69 +1,60 @@
 <div class="slide-header">
-  <h2>FDP 내부 구조의 추상화 매핑</h2>
-  <div class="slide-subtitle">물리적 파티션부터 논리적 스트림까지의 FDP 계층 구조</div>
+  <h2>배경 ②: NVMe FDP — 호스트가 배치를 지시한다</h2>
+  <div class="slide-subtitle">쓰기에 배치 식별자를 붙이면, 같은 식별자끼리 같은 회수 단위에 모인다</div>
 </div>
-      <div class="slide-body grid-2">
-        <div class="mermaid"
-          style="height: 100%; display: flex; align-items: center; justify-content: center; border: none; background: transparent;">
-          graph TD
-          subgraph Host[Host OS]
-              WS1[Write Stream 1]
-              WS2[Write Stream 2]
-          end
-          
-          subgraph SSD_CTRL[SSD Controller]
-              RUH1[RUH 1]
-              RUH2[RUH 2]
-          end
-          
-          subgraph NAND[NAND Flash Media]
-              subgraph RG1[Reclaim Group 1]
-                  RU1[("RU 1 (Block) - Active")]
-                  RU2[("RU 2 (Block) - Standby")]
-              end
-              subgraph RG2[Reclaim Group 2]
-                  RU3[("RU 3 (Block) - Active")]
-                  RU4[("RU 4 (Block) - Standby")]
-              end
-          end
-          
-          WS1 -->|"PID 1 매핑"| RUH1
-          WS2 -->|"PID 2 매핑"| RUH2
-          
-          RUH1 ==>|"기록 중"| RU1
-          RUH2 ==>|"기록 중"| RU3
-          
-          style WS1 fill:#1e293b,stroke:#818cf8,stroke-width:2px
-          style WS2 fill:#1e293b,stroke:#818cf8,stroke-width:2px
-          style RUH1 fill:#1e293b,stroke:#34d399,stroke-width:2px
-          style RUH2 fill:#1e293b,stroke:#34d399,stroke-width:2px
-          style RU1 fill:#0f172a,stroke:#38bdf8,stroke-width:2px
-          style RU2 fill:transparent,stroke:#475569,stroke-dasharray: 5 5
-          style RU3 fill:#0f172a,stroke:#38bdf8,stroke-width:2px
-          style RU4 fill:transparent,stroke:#475569,stroke-dasharray: 5 5
-          style RG1 fill:transparent,stroke:#94a3b8,stroke-width:2px
-          style RG2 fill:transparent,stroke:#94a3b8,stroke-width:2px
-          style Host fill:transparent,stroke:#475569
-          style SSD_CTRL fill:transparent,stroke:#475569
-          style NAND fill:transparent,stroke:#475569
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
-          <div class="card" style="padding: 1.2rem;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">1. Reclaim Group (RG)</h3>
-            <p style="font-size: 0.95rem;">플래시 미디어 내에서 독립적으로 GC가 수행되는 영역입니다. 다중 RG 간에는 미디어 레벨의 병렬성을 확보할 수 있습니다.</p>
-          </div>
-          <div class="card" style="padding: 1.2rem;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">2. Reclaim Unit (RU)</h3>
-            <p style="font-size: 0.95rem;">FDP에서 관리하는 최소 스토리지 할당 단위로, 내부적으로 다수의 NAND Block들로 구성되어 실제 Erase 작업이 일어나는
-              단위입니다.</p>
-          </div>
-          <div class="card" style="padding: 1.2rem;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">3. Reclaim Unit Handle (RUH)</h3>
-            <p style="font-size: 0.95rem;">SSD 컨트롤러가 현재 데이터를 기록하기 위해 열어둔(Open) 활성 RU를 지칭하는 내부 포인터 리소스입니다.</p>
-          </div>
-          <div class="card" style="padding: 1.2rem;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">4. Write Stream</h3>
-            <p style="font-size: 0.95rem;">호스트가 데이터 생명 주기 격리를 위해 각 I/O 단위에 부여하는 식별자이며, 디바이스 내의 특정 RUH로 매핑됩니다.</p>
-          </div>
-        </div>
-      </div>
+<div class="slide-body grid-2">
+  <div style="display: flex; flex-direction: column; gap: 1rem; min-height: 0;">
+    <div class="mermaid" style="flex: 1;">
+      graph LR
+      subgraph Host["Host OS"]
+      WS1["Write Stream 1"]
+      WS2["Write Stream 2"]
+      end
+      subgraph CTRL["SSD Controller"]
+      RUH1["RUH 1"]
+      RUH2["RUH 2"]
+      end
+      subgraph NAND["NAND (Reclaim Group)"]
+      RU1[("RU · Active")]
+      RU2[("RU · Active")]
+      end
+      WS1 -->|"PID 1"| RUH1
+      WS2 -->|"PID 2"| RUH2
+      RUH1 ==> RU1
+      RUH2 ==> RU2
+      style WS1 fill:#1e293b,stroke:#818cf8,stroke-width:2px
+      style WS2 fill:#1e293b,stroke:#818cf8,stroke-width:2px
+      style RUH1 fill:#1e293b,stroke:#34d399,stroke-width:2px
+      style RUH2 fill:#1e293b,stroke:#34d399,stroke-width:2px
+      style RU1 fill:#0f172a,stroke:#38bdf8,stroke-width:2px
+      style RU2 fill:#0f172a,stroke:#38bdf8,stroke-width:2px
+      style Host fill:transparent,stroke:#475569
+      style CTRL fill:transparent,stroke:#475569
+      style NAND fill:transparent,stroke:#475569
+    </div>
+    <div class="card" style="padding: 1rem 1.2rem; flex: none;">
+      <p style="font-size: 0.95rem;">
+        <strong style="color: var(--accent-green);">ZNS와 다른 점:</strong> FDP의 힌트는 <strong>권고(advisory)</strong>입니다.
+        FDP 드라이브는 여전히 평범한 블록 디바이스라서, 아무것도 안 해도 그냥 동작합니다. 그래서 점진적 도입이 가능합니다.
+      </p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>용어 네 개만 알면 됩니다</h3>
+    <ul style="font-size: 0.97rem;">
+      <li><strong>RU (Reclaim Unit):</strong> 함께 지워지는 미디어 영역. <strong>이 단위 안의 수명을 맞추는 것이 전부</strong>입니다.</li>
+      <li><strong>RG (Reclaim Group):</strong> RU들의 묶음. 그룹 사이에는 미디어 병렬성이 확보됩니다.</li>
+      <li><strong>RUH (RU Handle):</strong> 컨트롤러가 지금 쓰고 있는 RU를 가리키는 포인터. <strong>개수가 곧 하드웨어 제약</strong>입니다.</li>
+      <li><strong>Write Stream:</strong> 호스트가 쓰기에 붙이는 식별자. NVMe 드라이버가 이를 배치 식별자(RG + RUH)로 옮깁니다.</li>
+    </ul>
+    <div style="margin-top: 0.9rem; padding: 0.85rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
+      수명이 같은 데이터가 한 RU를 채우면 그 RU는 <strong>통째로 무효화</strong>됩니다.
+      회수할 때 옮길 유효 데이터가 없으므로 WAF가 1에 수렴합니다.
+    </div>
+  </div>
+</div>
+<div class="takeaway" data-tone="green">💡 FDP는 "수명이 같은 것끼리 같은 RU에 모아라"라는 <em>지시 채널</em>을 열어줄 뿐이다. 무엇을 모을지는 호스트의 몫이다.</div>
+<div class="notes">
+  Linux는 이 지시 채널을 블록 계층의 write stream으로 이미 뚫어 놨다. 문제는 채널이 아니라 "누가 값을 넣느냐"라는 점으로 넘어간다.
+</div>

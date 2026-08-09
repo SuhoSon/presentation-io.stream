@@ -1,0 +1,51 @@
+<div class="slide-header">
+  <h2>부록 B. 재현을 위한 설정<span class="appendix-badge">APPENDIX</span></h2>
+  <div class="slide-subtitle">워크로드 구성과 각 단계의 파라미터</div>
+</div>
+<div class="slide-body grid-2">
+  <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
+    <div class="card" style="padding: 1.1rem 1.3rem;">
+      <h3 style="font-size: 1.1rem;">Stage 3 — 무수정 컨테이너 4종</h3>
+      <table class="datatable" style="margin-top: 0.2rem;">
+        <thead>
+          <tr><th>앱</th><th>이미지</th><th>벤치마크</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>RocksDB</td><td><code style="font-size: 0.78rem;">alpine:3.20</code><br><span style="color: var(--text-muted); font-size: 0.82rem;">+ db_bench v11.5.0</span></td><td>fillrandom<br><span style="color: var(--text-muted); font-size: 0.82rem;">40억 키</span></td></tr>
+          <tr><td>PostgreSQL</td><td><code style="font-size: 0.78rem;">postgres:15</code></td><td>pgbench<br><span style="color: var(--text-muted); font-size: 0.82rem;">32 클라이언트 / 4 스레드</span></td></tr>
+          <tr><td>Kafka</td><td><code style="font-size: 0.78rem;">apache/kafka:4.2.1</code></td><td>producer-perf-test<br><span style="color: var(--text-muted); font-size: 0.82rem;">1 KB, 스로틀 없음</span></td></tr>
+          <tr><td>MongoDB</td><td><code style="font-size: 0.78rem;">mongo:6.0</code></td><td>bulk insertMany</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.6rem;">
+        스톡 이미지를 그대로 사용하고, 배치는 오직 각 컨테이너의 cgroup을 스트림에 매핑하는 것으로만 지정합니다.
+        RocksDB는 direct I/O를 꺼서 flush와 컴팩션 쓰기가 페이지 캐시를 지나가게 했습니다.
+      </p>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+    <div class="card" style="padding: 1.1rem 1.3rem;">
+      <h3 style="font-size: 1.1rem;">Stage 1 · 2 — fio 구성</h3>
+      <ul style="font-size: 0.93rem;">
+        <li><strong>4 KB 순차 쓰기</strong>, <code>libaio</code>, <code>iodepth=256</code></li>
+        <li>raw 경로는 direct, 파일시스템 경로는 buffered</li>
+        <li>실행당 <strong>2시간</strong>, 사전에 <strong>128 KB 순차 쓰기로 프리컨디셔닝</strong></li>
+        <li>수명은 <strong>영역 크기</strong>로 만듭니다. hot cgroup은 좁은 영역을 계속 덮어쓰고(빠른 재활용), cold cgroup은 넓은 영역을 훑습니다(느린 재활용).</li>
+        <li><strong>Stage 1:</strong> hot 5% / cold 95%의 2테넌트</li>
+        <li><strong>Stage 2:</strong> cgroup 14개 — hot 7개(1%) / cold 7개(13%)</li>
+      </ul>
+    </div>
+    <div class="card" style="padding: 1.1rem 1.3rem;">
+      <h3 style="font-size: 1.1rem;">파일시스템 튜닝</h3>
+      <ul style="font-size: 0.93rem;">
+        <li><strong>ext4:</strong> <code>^flex_bg</code>, <code>commit=1</code>, 예약 블록 없음</li>
+        <li><strong>xfs:</strong> 10 MB 로그, <code>maxpct=100</code>, <code>wsync</code></li>
+        <li>목적은 성능 최적화가 아니라 <strong>저널링을 계속 활성 상태로 유지</strong>해 메타데이터 경로를 자극하는 것입니다.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="notes">
+  "수명을 영역 크기로 만든다"는 아이디어가 이 실험 설계의 핵심 트릭이다. 합성 워크로드로 수명 차이를 만들어내는 깔끔한 방법.
+</div>

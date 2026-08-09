@@ -1,22 +1,66 @@
 <div class="slide-header">
-        <h2>안 되는 것 / 아직 모르는 것 (Limitations & Open Questions)</h2>
-        <div class="slide-subtitle">본 논문의 한계점과 추후 연구가 필요한 미해결 과제들</div>
-      </div>
-      <div class="slide-body">
-        <div class="card" style="padding: 2.5rem; border-color: rgba(245, 158, 11, 0.4);">
-          <ul style="font-size: 1.15rem; line-height: 2.2;">
-            <li><strong>cgroup 경계 ≠ 데이터 Lifetime:</strong> 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">단일 컨테이너(cgroup) 안에도 수명이 천차만별인 데이터가 혼재합니다. (예: RocksDB 내의 수명이 짧은 WAL과 긴 SSTable, Temp). <code>io.stream</code>의 매크로(Macro) 제어만으로는 애플리케이션 내부의 미세한 수명 차이를 찢어낼 수 없습니다.</span>
-            </li>
-            <li style="margin-top: 0.8rem;"><strong>방향 비대칭 현상의 원인 미규명:</strong> 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">잘못된 매핑 시 한쪽 방향(1.07)은 방어되나 반대 방향(3.43)은 심각하게 붕괴하는 현상이 발견되었으나, 펌웨어 내부 동작을 볼 수 없어 정확한 원인은 밝혀내지 못했습니다.</span>
-            </li>
-            <li style="margin-top: 0.8rem;"><strong>Tail Latency (p99) 개선의 근본 원인:</strong> 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">p99 지연시간이 93%나 개선되었으나, 이는 블랙박스 내의 관측(Observation) 결과일 뿐입니다. 정확히 어떤 FTL 큐가 해소되었는지는 아직 가설 단계에 머물러 있습니다.</span>
-            </li>
-            <li style="margin-top: 0.8rem;"><strong>실험 시간의 제약:</strong> 
-              <br><span style="color:#cbd5e1; font-size: 1.05rem;">12시간의 상용 워크로드 평가는 유의미하지만, 수년에 달하는 SSD의 전체 라이프사이클 마모도를 대변하기엔 상대적으로 짧은 시간입니다.</span>
-            </li>
-          </ul>
-        </div>
-      </div>
+  <h2>Q3. "진짜 워크로드에서도 통할까?"</h2>
+  <div class="slide-subtitle">Stage 3 — 무수정 컨테이너 4종이 ext4 볼륨 하나를 공유하며 12시간. 배치는 오직 cgroup↔스트림 매핑으로만 지정</div>
+</div>
+<div class="slide-body">
+  <div class="wafchart">
+    <div class="wafbar">
+      <span class="wafnum">1.70</span>
+      <div class="wafcol" style="height: 70%;"></div>
+      <span class="waflabel"><b>FDP-default</b><em>스트림 0개</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.70</span>
+      <div class="wafcol" style="height: 70%;"></div>
+      <span class="waflabel"><b>넷을 한 스트림에</b><em>1개</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.80</span>
+      <div class="wafcol" data-tone="bad" style="height: 80%;"></div>
+      <span class="waflabel"><b>{R,M} / {P,K}</b><em>2개 · 수명 혼합</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.58</span>
+      <div class="wafcol" data-tone="bad" style="height: 58%;"></div>
+      <span class="waflabel"><b>{R,K} / {P,M}</b><em>2개 · 수명 혼합</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.27</span>
+      <div class="wafcol" data-tone="good" style="height: 27%;"></div>
+      <span class="waflabel"><b>{R,P} / {K,M}</b><em>2개 · 수명 정합</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.23</span>
+      <div class="wafcol" data-tone="ok" style="height: 23%;"></div>
+      <span class="waflabel"><b>앱마다 하나씩</b><em>4개</em></span>
+    </div>
+  </div>
+  <div class="axis-note" style="text-align: left; color: #cbd5e1;">
+    <strong style="color: var(--accent-red);">R</strong> RocksDB · <strong style="color: var(--accent-red);">P</strong> PostgreSQL — hot, 짧은 수명 (LSM 컴팩션 / WAL 재활용) &nbsp;&nbsp;|&nbsp;&nbsp;
+    <strong style="color: var(--accent-blue);">K</strong> Kafka · <strong style="color: var(--accent-blue);">M</strong> MongoDB — cold, 긴 수명 (불변 로그 세그먼트 / 갱신 없는 문서)
+  </div>
+
+  <div class="grid-2" style="margin-top: 0.1rem;">
+    <div class="card" style="padding: 1rem 1.2rem;">
+      <h3 style="font-size: 1.08rem;">가운데 세 막대만 보십시오</h3>
+      <p style="font-size: 0.95rem;">
+        <strong>스트림 개수가 똑같이 2개인데</strong> 결과는 <strong>1.80 / 1.58 / 1.27</strong>로 갈립니다.
+        달라진 것은 오직 <strong>누구를 누구와 묶었는가</strong>뿐입니다.
+        수명이 섞인 한 쌍은 <strong style="color: var(--accent-red);">FDP-default(1.70)보다도 나쁩니다.</strong>
+      </p>
+    </div>
+    <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(52, 211, 153, 0.5);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-green);">절반의 스트림으로 같은 값</h3>
+      <p style="font-size: 0.95rem;">
+        수명이 맞는 <strong>2개 묶음이 1.27</strong>, 앱마다 하나씩 준 <strong>4개가 1.23</strong>.
+        <strong>스트림을 절반만 쓰고도 사실상 같은 결과</strong>입니다.
+        넷을 한 스트림에 모은 경우가 FDP-default와 똑같이 1.70인 이유는,
+        그렇게 하면 <strong>jbd2 저널만 격리될 뿐 사용자 데이터는 여전히 같은 회수 단위를 공유</strong>하기 때문입니다.
+      </p>
+    </div>
+  </div>
+</div>
+<div class="takeaway" data-tone="green">💡 앱마다 스트림을 낭비할 필요가 없다. 수명이 같으면 묶어도 되고, 다르면 묶는 순간 손해다.</div>
+<div class="notes">
+  RocksDB는 direct I/O를 끄고 돌렸다. flush와 컴팩션 쓰기가 페이지 캐시를 거친다는 뜻이고, 그래서 이 실험이 buffered 경로 주장을 실제로 검증한다.
+</div>

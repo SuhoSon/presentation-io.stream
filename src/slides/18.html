@@ -1,0 +1,41 @@
+<div class="slide-header">
+  <h2>결론</h2>
+  <div class="slide-subtitle">운영자가 쓰는 단위로 배치를 노출하면, FDP는 앱을 고치지 않고도 쓸 수 있게 됩니다</div>
+</div>
+<div class="slide-body">
+  <div class="highlight-box">
+    <div class="highlight-title">처음에 걸어둔 문장으로 돌아오면</div>
+    <p style="font-size: 1.15rem; line-height: 1.7;">
+      WAF를 지배하는 것은 <strong>스트림의 개수가 아니라 매핑의 수명 정합성</strong>이다.
+      정합적인 많은-대-하나 병합은 <strong>절반의 스트림으로 cgroup별 완전 격리에 필적</strong>했고,
+      비정합적인 매핑은 <strong>FDP를 쓰지 않은 것보다 나빴다.</strong>
+    </p>
+  </div>
+  <div class="grid-3" style="margin-top: 0.3rem;">
+    <div class="card">
+      <h3 style="font-size: 1.1rem;">무엇을 했나</h3>
+      <p style="font-size: 0.95rem;">
+        cgroup v2 I/O 컨트롤러에 파일 하나를 더해, 운영자가 테넌트에 배치 스트림을 배정할 수 있게 했습니다.
+        커널은 그 cgroup의 <strong>모든 데이터 쓰기에 스트림을 찍습니다.</strong>
+      </p>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 1.1rem;">왜 되는가</h3>
+      <p style="font-size: 0.95rem;">
+        cgroup 라벨은 <strong>버퍼드·라이트백 경로까지 포함해 모든 데이터 쓰기 bio에 이미 실려</strong> 있습니다.
+        per-I/O 태깅이 닿지 못하는 바로 그 경로입니다.
+      </p>
+    </div>
+    <div class="card">
+      <h3 style="font-size: 1.1rem;">무엇을 남기나</h3>
+      <p style="font-size: 0.95rem;">
+        테넌트가 뜨고 지는 동안 <strong>정합성을 온라인으로 공급하는 문제</strong>는 열려 있습니다.
+        이 논문은 그 정책 질문을 여는 데까지가 몫입니다.
+      </p>
+    </div>
+  </div>
+</div>
+<div class="takeaway" data-tone="green">💡 하드웨어를 켜는 문제가 아니라, <em>누가 결정하는가</em>를 정하는 문제였다.</div>
+<div class="notes">
+  표지에서 걸어둔 문장을 그대로 다시 읽어준다. 반복이 기억을 만든다.
+</div>

@@ -1,19 +1,43 @@
 <div class="slide-header">
-        <h2>결론 (Conclusion)</h2>
-        <div class="slide-subtitle">Host-Managed Storage 패러다임의 실효적 구현 및 향후 지향점</div>
-      </div>
-      <div class="slide-body grid-2">
-        <div class="card" style="border-color: rgba(56, 189, 248, 0.5);">
-          <h3>주요 연구 성과 및 의의</h3>
-          <ul>
-            <li><strong>Zero-Modification 호환성:</strong> 레거시 워크로드 및 범용 파일시스템 스택의 코드 변형을 배제하여 NVMe FDP 기술의 실무 진입 장벽을 완전히 허물었습니다.</li>
-            <li><strong>Operator-Driven 아키텍처:</strong> 시스템 운영자 관점의 매크로(Macro) 자원 경계를 물리 매체(NAND)까지 1:1로 전달하는 효율적 아키텍처를 제시했습니다.</li>
-            <li><strong>정책적 교훈 도출:</strong> "FDP는 하드웨어가 아니라 정책이다." 올바른 매핑 없이 스트림 자원만 늘리는 것은 오히려 성능을 파괴함을 실증했습니다.</li>
-          </ul>
-        </div>
-        <div class="card" style="border-color: rgba(129, 140, 248, 0.5); text-align: center; display: flex; flex-direction: column; justify-content: center;">
-          <h3 style="font-size: 1.6rem; color: var(--accent-blue); margin-bottom: 1.2rem; justify-content: center;">Q & A</h3>
-          <p style="color: var(--text-main); font-weight: 500; font-size: 1.1rem;">경청해 주셔서 대단히 감사합니다.</p>
-          <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.8rem;">논문의 설계 및 구현 사항과 관련한 질문을 환영합니다.</p>
-        </div>
-      </div>
+  <h2>오버헤드, 그리고 헷갈리기 쉬운 두 번째 노브</h2>
+  <div class="slide-subtitle">"몇 개를 세워두는가"와 "어떻게 묶는가"는 서로 다른 축입니다</div>
+</div>
+<div class="slide-body grid-2">
+  <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
+    <h3 style="color: var(--accent-green);">비용은 사실상 측정되지 않습니다</h3>
+    <ul style="font-size: 0.97rem;">
+      <li><strong>bio당 조건부 필드 쓰기 한 번.</strong> fast path에 새 할당이 없습니다.</li>
+      <li>기준 대비 <strong>IOPS와 p99 차이 1% 미만.</strong></li>
+      <li>커널 변경은 <strong>약 300줄</strong>이고 거의 전부 block-cgroup 코드입니다. 여기에 sentinel 초기화 한 줄이 더해집니다.</li>
+      <li>찍힌 스트림은 블록 계층을 <strong>온전히 통과</strong>합니다. 분할된 bio는 부모의 값을 물려받고, 다른 스트림끼리는 병합되지 않습니다.</li>
+    </ul>
+    <div style="margin-top: 0.9rem; padding: 0.85rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
+      커널 변경을 제안하는 논문에서 이 문단이 없으면 리뷰어가 가장 먼저 묻습니다.
+      <strong>"작다"는 주장은 반드시 숫자로 받쳐야 합니다.</strong>
+    </div>
+  </div>
+
+  <div class="card" style="border-color: rgba(251, 191, 36, 0.5);">
+    <h3 style="color: var(--accent-amber);">provision(세우기) vs use(쓰기)</h3>
+    <p style="font-size: 0.96rem;">
+      회수 유닛을 하나 세워두면 내부 용량이 조금 예약됩니다. 유닛을 많이 세울수록 <strong>유효 OP가 줄고</strong>,
+      배치를 관리하지 않으면 <strong>WAF가 올라갑니다.</strong>
+      Q1에서 본 <strong>FDP-default가 No-FDP보다 나빴던 이유</strong>가 바로 이것입니다.
+    </p>
+    <div style="margin-top: 0.9rem; padding: 0.9rem; background: rgba(248, 113, 113, 0.1); border-left: 4px solid var(--accent-red); border-radius: 4px; font-size: 0.95rem;">
+      <strong style="color: var(--accent-red);">그래서 Q2의 결과를 OP로 설명하면 틀립니다.</strong>
+      Stage 2의 <strong>모든 arm은 똑같이 8개를 세워 두고 똑같은 OP 비용을 냈습니다.</strong>
+      Coherent는 그중 <strong>2개로만 쓰기를 보냈을 뿐</strong>입니다.
+      따라서 arm 사이의 차이는 OP가 아니라 <strong>매핑 정합성만을 분리해 보여줍니다.</strong>
+    </div>
+    <p style="font-size: 0.96rem; margin-top: 0.9rem;">
+      주어진 cgroup 조합에 <strong>몇 개를 세울 것인가</strong> — 적게 세워 OP를 지킬지, 많이 세워 수명에 여유를 줄지 —
+      는 io.stream의 logical/physical 분리가 비로소 손에 잡히게 만든 <strong>별개의 노브</strong>이고,
+      매핑과의 공동 최적화는 <strong>향후 과제</strong>로 남아 있습니다.
+    </p>
+  </div>
+</div>
+<div class="takeaway" data-tone="amber">💡 노브가 둘이다. <em>몇 개를 세우나</em>는 OP 비용을 정하고, <em>어떻게 묶나</em>는 정합성을 정한다.</div>
+<div class="notes">
+  이 구분을 흐리면 "스트림은 무조건 적게 써야 한다"는 잘못된 교훈으로 굳는다. 논문은 그렇게 말하지 않는다.
+</div>

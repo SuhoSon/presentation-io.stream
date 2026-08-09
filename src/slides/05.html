@@ -1,30 +1,58 @@
 <div class="slide-header">
-        <h2>Related Work: 기존 FDP 도입 방식의 구조적 한계 및 실증 사례</h2>
-        <div class="slide-subtitle">애플리케이션 및 파일시스템 계층 기반 제어의 문제점</div>
-      </div>
-      <div class="slide-body grid-2">
-        <div class="card" style="margin-bottom: 1rem;">
-          <h3>1. Application-Driven 모델</h3>
-          <ul>
-            <li style="margin-bottom: 0.5rem;"><strong>사례:</strong> <code>CacheLib</code> 등 (io_uring passthrough 사용)</li>
-            <li style="margin-bottom: 0.5rem;"><strong>엔지니어링 비용:</strong> 상용 애플리케이션의 I/O 엔진(소스코드) 직접 수정 필요.</li>
-            <li><strong>컨텍스트 유실:</strong> Buffered I/O 및 Writeback 경로를 지원하지 못해 범용성 한계.</li>
-          </ul>
-        </div>
-        <div class="card" style="margin-bottom: 1rem;">
-          <h3>2. FS-Driven 모델</h3>
-          <ul>
-            <li style="margin-bottom: 0.5rem;"><strong>사례:</strong> <code>FStream</code> (파일 속성 기반), <code>F2FS</code> (세그먼트 온도 기반)</li>
-            <li style="margin-bottom: 0.5rem;"><strong>휴리스틱 예측의 불확실성:</strong> 파일 속성만으로는 실제 런타임 생명 주기를 정확히 추론하기 어려움.</li>
-            <li><strong>데이터 편향 (WARP 연구):</strong> F2FS에 제어를 일임한 결과, <strong>전체 데이터의 99%가 단일 WARM RUH로 집중</strong>되어 스트림 분리 효과가 상실됨.</li>
-          </ul>
-        </div>
-        <div class="card" style="grid-column: span 2; border-color: rgba(56, 189, 248, 0.4);">
-          <h3>3. Kernel-Driven 모델 (LBA / Program Context 기반)</h3>
-          <ul>
-            <li style="margin-bottom: 0.5rem;"><strong>사례:</strong> <code>AutoStream</code> (LBA 패턴 추론), <code>PCStream</code> (Issuing Program Context 기반)</li>
-            <li style="margin-bottom: 0.5rem;"><strong>운영자(Operator) 제어 불가:</strong> 시스템 관리자가 텐넌트나 워크로드의 특성을 알고 있어도, 커널이 자동으로 추론하므로 <strong>명시적인 정책 개입 및 제어가 불가능</strong>함 (Operator intent 반영 불가).</li>
-            <li><strong>한계점:</strong> 애플리케이션 수정은 피했으나, 커널 내에서 지속적인 모니터링 연산 및 그룹 재구성 비용(Overhead) 발생. <strong>io.stream</strong>은 cgroup이 이미 제공하는 그룹화 정보와 운영자의 명시적 제어를 통해 이를 해결함.</li>
-          </ul>
-        </div>
-      </div>
+  <h2>배경 ③: cgroup 라벨은 이미 모든 쓰기에 붙어 있다</h2>
+  <div class="slide-subtitle">이 논문 전체가 딛고 서는 사실 하나 — cgroup writeback의 귀속 규칙</div>
+</div>
+<div class="slide-body grid-2">
+  <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
+    <div class="mermaid" style="flex: 1;">
+      graph TD
+      APP["Tenant A cgroup<br/>write() — buffered"]
+      PC["Page Cache<br/>dirty page · 소유자 = A"]
+      KW["flusher kworker<br/>실행 스레드 = root cgroup"]
+      BIO["제출된 bio<br/>bi_blkcg = <b>A</b>"]
+      APP --> PC
+      PC -.->|"수 초 뒤, 비동기"| KW
+      KW ==> BIO
+      style APP fill:#1e293b,stroke:#818cf8,stroke-width:2px
+      style PC fill:#1e293b,stroke:#94a3b8
+      style KW fill:#1e293b,stroke:#eab308,stroke-width:2px
+      style BIO fill:#0f172a,stroke:#34d399,stroke-width:3px
+    </div>
+    <div class="card" style="padding: 0.9rem 1.2rem; flex: none; border-color: rgba(52, 211, 153, 0.45);">
+      <p style="font-size: 0.97rem;">
+        쓰기를 <strong>수행하는 스레드</strong>는 공용 kworker(root)지만,
+        <strong>bio에 찍히는 라벨</strong>은 페이지를 더럽힌 원래 cgroup입니다.
+        <strong style="color: var(--accent-green);">이 어긋남이 곧 기회입니다.</strong>
+      </p>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
+      <h3>cgroup v2 I/O 컨트롤러가 이미 가진 것</h3>
+      <p style="font-size: 0.97rem;">
+        <code>io.weight</code> · <code>io.max</code> · <code>io.latency</code>로 cgroup별 <strong>대역폭과 QoS</strong>를 이미 관리합니다.
+        이 모든 것이 가능한 이유는 <strong>모든 bio가 발행 cgroup의 blkcg와 묶여 있기</strong> 때문입니다.
+      </p>
+      <p style="font-size: 0.97rem; margin-top: 0.7rem; color: var(--accent-green);">
+        <strong>io.stream은 여기에 '배치(placement)'를 한 칸 더하는 일입니다.</strong>
+      </p>
+    </div>
+    <div class="card" style="border-color: rgba(248, 113, 113, 0.4);">
+      <h3>반면 per-I/O 태깅이 닿는 범위</h3>
+      <p style="font-size: 0.97rem;">
+        오늘 스트림을 지정하는 유일한 방법은 <code>io_uring</code> 쓰기 속성이고, 이는
+        <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
+        버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 건드리지 않은 채로 두므로
+        <strong style="color: var(--accent-red);">그대로 디바이스 기본값으로 떨어집니다.</strong>
+      </p>
+      <p style="font-size: 0.97rem; margin-top: 0.7rem;">
+        즉 <strong>blkcg 라벨은 per-I/O 태깅이 닿지 못하는 바로 그 경로에 이미 존재</strong>합니다.
+      </p>
+    </div>
+  </div>
+</div>
+<div class="takeaway" data-tone="green">💡 배치 정보를 새로 만들 필요가 없다. 필요한 라벨은 이미 모든 데이터 쓰기에 붙어서 흐르고 있다.</div>
+<div class="notes">
+  후배들이 여기서 막히면 뒤가 전부 안 들린다. "kworker가 썼는데 왜 A로 기록되나"를 한 번 더 짚고 넘어갈 것.
+</div>
