@@ -1,43 +1,61 @@
 <div class="slide-header">
-  <h2>오버헤드, 그리고 헷갈리기 쉬운 두 번째 노브</h2>
-  <div class="slide-subtitle">"몇 개를 세워 두느냐"와 "어떻게 묶느냐"는 서로 다른 축입니다</div>
+  <h2>오버헤드, 그리고 헷갈리기 쉬운 두 축</h2>
+  <div class="slide-subtitle">"몇 개를 세우나"와 "어떻게 묶나"는 값이 다른 별개의 노브입니다</div>
 </div>
-<div class="slide-body grid-2">
-  <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
-    <h3 style="color: var(--accent-green);">비용은 사실상 안 잡힙니다</h3>
-    <ul style="font-size: 0.97rem;">
-      <li><strong>bio 하나당 필드 하나를 조건부로 채우는 게 전부.</strong> fast path에서 메모리를 새로 잡지 않습니다.</li>
-      <li>기준 대비 <strong>IOPS와 p99 차이 1% 미만.</strong></li>
-      <li>커널 변경은 <strong>약 300줄</strong>이고 거의 전부 block-cgroup 코드입니다. 여기에 sentinel 초기화 한 줄이 더해집니다.</li>
-      <li>한 번 찍힌 스트림은 블록 계층을 <strong>그대로 통과</strong>합니다. 쪼개진 bio는 부모 값을 물려받고, 스트림이 다르면 합쳐지지 않습니다.</li>
-    </ul>
-    <div style="margin-top: 0.9rem; padding: 0.85rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
-      커널을 고치자고 제안하는 논문에 이 문단이 없으면 리뷰어가 제일 먼저 묻습니다.
-      <strong>"가볍다"는 주장은 반드시 숫자로 받쳐야 합니다.</strong>
+<div class="slide-body" style="justify-content: center;">
+  <div class="grid-3">
+    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(52, 211, 153, 0.45);">
+      <h3 style="font-size: 1.06rem; color: var(--accent-green);">비용은 사실상 안 잡힙니다</h3>
+      <ul style="font-size: 0.92rem;">
+        <li><strong>bio 하나당 필드 하나를 조건부로 채우는 게 전부.</strong> fast path에서 메모리를 새로 잡지 않습니다.</li>
+        <li>기준 대비 <strong>IOPS와 p99 차이 1% 미만.</strong></li>
+        <li>커널 변경 <strong>약 300줄</strong>, 거의 전부 block-cgroup 코드.</li>
+        <li>쪼개진 bio는 부모 값을 물려받고, 스트림이 다르면 합쳐지지 않습니다.</li>
+      </ul>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.5rem;">
+        커널을 고치자는 논문에 이 문단이 없으면 리뷰어가 제일 먼저 묻습니다. "가볍다"는 주장은 숫자로 받쳐야 합니다.
+      </p>
+    </div>
+
+    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(251, 191, 36, 0.5);">
+      <h3 style="font-size: 1.06rem; color: var(--accent-amber);">축 A — 몇 개를 세우나</h3>
+      <p style="font-size: 0.93rem;">
+        회수 유닛을 하나 세워 두면 내부 용량이 조금 예약됩니다.
+        많이 세울수록 <strong>실제로 쓸 수 있는 OP가 줄고</strong>, 배치를 관리하지 않으면 그만큼 <strong>WAF가 올라갑니다.</strong>
+      </p>
+      <div style="margin-top: 0.7rem; padding: 0.7rem 0.85rem; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 4px; font-size: 0.9rem;">
+        <strong>이게 Q1의 답입니다.</strong> FDP-default가 No-FDP보다 나빴던 건 여기서 값만 치르고 이득은 못 받았기 때문입니다.
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.6rem;">
+        결정하는 것: <strong style="color: var(--accent-amber);">OP 비용</strong>
+      </p>
+    </div>
+
+    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(52, 211, 153, 0.5);">
+      <h3 style="font-size: 1.06rem; color: var(--accent-green);">축 B — 어떻게 묶나</h3>
+      <p style="font-size: 0.93rem;">
+        같은 개수를 세워 놓고도, 누구를 누구와 묶느냐에 따라 결과가 갈립니다.
+        이게 <strong>수명 정합성</strong>이고 Q2·Q3가 잰 것입니다.
+      </p>
+      <div style="margin-top: 0.7rem; padding: 0.7rem 0.85rem; background: rgba(248, 113, 113, 0.1); border-left: 4px solid var(--accent-red); border-radius: 4px; font-size: 0.9rem;">
+        <strong style="color: var(--accent-red);">그래서 Q2를 OP로 설명하면 틀립니다.</strong>
+        Stage 2는 <strong>모든 조건이 똑같이 8개를 세워 두고</strong> 똑같은 OP 비용을 냈습니다. Coherent는 그중 2개로만 쓰기를 보냈을 뿐입니다.
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.6rem;">
+        결정하는 것: <strong style="color: var(--accent-green);">수명 정합성</strong>
+      </p>
     </div>
   </div>
 
-  <div class="card" style="border-color: rgba(251, 191, 36, 0.5);">
-    <h3 style="color: var(--accent-amber);">provision(세우기) vs use(쓰기)</h3>
-    <p style="font-size: 0.96rem;">
-      회수 유닛을 하나 세워 두면 내부 용량이 조금 예약됩니다. 많이 세울수록 <strong>실제로 쓸 수 있는 OP가 줄고</strong>,
-      배치를 관리하지 않으면 그만큼 <strong>WAF가 올라갑니다.</strong>
-      Q1에서 본 <strong>FDP-default가 No-FDP보다 나빴던 이유</strong>가 바로 이것입니다.
-    </p>
-    <div style="margin-top: 0.9rem; padding: 0.9rem; background: rgba(248, 113, 113, 0.1); border-left: 4px solid var(--accent-red); border-radius: 4px; font-size: 0.95rem;">
-      <strong style="color: var(--accent-red);">그래서 Q2의 결과를 OP로 설명하면 틀립니다.</strong>
-      Stage 2의 <strong>모든 조건이 똑같이 8개를 세워 두고 똑같은 OP 비용을 냈습니다.</strong>
-      Coherent는 그중 <strong>2개로만 쓰기를 보냈을 뿐</strong>이고요.
-      그러니 조건 사이의 차이는 OP가 아니라 <strong>매핑이 수명에 맞았느냐만</strong> 보여줍니다.
-    </div>
-    <p style="font-size: 0.96rem; margin-top: 0.9rem;">
-      주어진 cgroup 조합에 <strong>몇 개를 세울 것인가</strong> — 적게 세워 OP를 지킬지, 많이 세워 수명에 여유를 줄지 —
-      는 io.stream의 logical/physical 분리 덕분에 비로소 손에 잡히게 된 <strong>별개의 노브</strong>입니다.
-      이걸 매핑과 같이 푸는 일은 <strong>앞으로의 숙제</strong>로 남아 있습니다.
+  <div class="card" style="padding: 0.8rem 1.3rem; flex: none; margin-top: 0.2rem;">
+    <p style="font-size: 0.95rem;">
+      두 축을 같이 푸는 일 — <strong>주어진 cgroup 조합에 몇 개를 세우고 어떻게 묶을 것인가</strong> — 은
+      io.stream의 logical/physical 분리 덕분에 비로소 문제로 세울 수 있게 됐고, <strong>앞으로의 숙제</strong>로 남아 있습니다.
     </p>
   </div>
 </div>
 <div class="takeaway" data-tone="amber">💡 노브가 둘이다. <em>몇 개를 세우나</em>는 OP 비용을 정하고, <em>어떻게 묶나</em>는 수명 정합성을 정한다.</div>
 <div class="notes">
   이 구분을 흐리면 "스트림은 무조건 적게 써야 한다"는 잘못된 교훈으로 굳어 버린다. 논문은 그런 말을 한 적이 없다.
+  Part 2의 20번에서 같은 이야기를 장비 쪽(Open 블록 · GC 풀 · Free Block)에서 다시 본다.
 </div>
