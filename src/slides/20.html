@@ -51,23 +51,29 @@
     <span style="color: var(--text-muted);">(WARP Fig. 18–19)</span>
   </div>
 
-  <div class="grid-2" style="margin-top: 0.1rem;">
-    <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(56, 189, 248, 0.5);">
-      <h3 style="font-size: 1.08rem; color: var(--accent-blue);">II — 처음 쓸 때만 갈라 둡니다</h3>
-      <p style="font-size: 0.94rem;">
-        Initially Isolated. 호스트가 쓰는 순간에는 RUH별로 나뉘지만,
-        GC가 살아남은 페이지를 옮길 때는 <strong>전부 공용 GC-RUH 한 곳으로 모읍니다.</strong>
-        여유 공간을 한 군데에 몰아 쓰니 <strong style="color: var(--accent-blue);">OP가 빠듯할 때 잘 버팁니다.</strong>
-        대신 시간이 지나면 서로 다른 RUH의 데이터가 한 블록에 섞입니다.
+  <div class="grid-3" style="margin-top: 0.1rem;">
+    <div class="card" style="padding: 0.9rem 1.1rem;">
+      <h3 style="font-size: 1.02rem; color: #94a3b8;">No-FDP — 통합 풀 하나</h3>
+      <p style="font-size: 0.88rem;">
+        Free block 전체를 <strong>단일 풀</strong>로 굴립니다.
+        <strong style="color: var(--accent-blue);">Effective OP는 최대</strong>지만,
+        수명이 다른 I/O가 섞이니 <strong style="color: var(--accent-red);">격리는 0</strong>입니다.
       </p>
     </div>
-    <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(192, 132, 252, 0.5);">
-      <h3 style="font-size: 1.08rem; color: var(--accent-purple);">PI — 복사본까지 원래 자리에 남깁니다</h3>
-      <p style="font-size: 0.94rem;">
-        Persistently Isolated. GC 복사본도 <strong>출신 RUH 안에 그대로</strong> 둡니다. 격리가 끝까지 유지되죠.
-        문제는 <strong>여유 공간이 RUH 개수만큼 쪼개진다는 것</strong>입니다.
-        OP가 부족하면 RUH마다 숨 쉴 틈이 없어져 GC가 잦아지고,
-        <strong style="color: var(--accent-purple);">OP가 넉넉해야 비로소 더 낮은 하한에 도달합니다.</strong>
+    <div class="card" style="padding: 0.9rem 1.1rem; border-color: rgba(56, 189, 248, 0.5);">
+      <h3 style="font-size: 1.02rem; color: var(--accent-blue);">II — 쓸 때만 갈라 둠</h3>
+      <p style="font-size: 0.88rem;">
+        호스트가 쓰는 순간에는 RUH별로 나뉘지만, GC 복사본은 <strong>공용 GC-RUH 한 곳</strong>으로 모입니다.
+        여유 공간이 사실상 한 풀로 남아 <strong style="color: var(--accent-blue);">OP가 빠듯할 때 버팁니다.</strong>
+        대신 시간이 지나면 RUH끼리 한 블록에 섞입니다.
+      </p>
+    </div>
+    <div class="card" style="padding: 0.9rem 1.1rem; border-color: rgba(192, 132, 252, 0.5);">
+      <h3 style="font-size: 1.02rem; color: var(--accent-purple);">PI — 복사본까지 제자리</h3>
+      <p style="font-size: 0.88rem;">
+        RUH마다 <strong>활성 블록과 GC 풀을 따로</strong> 들고 갑니다. 격리는 끝까지 유지되지만
+        <strong style="color: var(--accent-purple);">Effective OP가 RUH 개수만큼 조각납니다.</strong>
+        OP가 빠듯하면 RUH마다 숨 쉴 틈이 없어 GC가 잦아지고, 넉넉해야 비로소 더 낮은 하한에 닿습니다.
       </p>
     </div>
   </div>

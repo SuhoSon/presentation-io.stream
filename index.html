@@ -1688,15 +1688,22 @@
       
         <div style="display: flex; flex-direction: column; gap: 0.9rem;">
           <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(251, 191, 36, 0.45);">
-            <h3 style="font-size: 1.1rem; color: var(--accent-amber);">벤더가 정해 놓고 알려주지 않는 네 가지</h3>
-            <ul style="font-size: 0.94rem;">
-              <li><strong>RU 크기</strong> — 한 번에 회수되는 덩어리의 크기 (보통 NAND 슈퍼블록)</li>
-              <li><strong>OP 비율</strong> — 내부에 숨겨 둔 여유 공간이 몇 %인가</li>
-              <li><strong>RUH 개수</strong> — 호스트가 쓸 수 있는 스트림이 몇 개인가</li>
-              <li><strong>RUH 격리 방식</strong> — <strong style="color: var(--accent-amber);">II냐 PI냐</strong> (다음 장)</li>
-            </ul>
+            <h3 style="font-size: 1.1rem; color: var(--accent-amber);">벤더가 정해 놓는 것들 — 읽히는 것과 안 읽히는 것</h3>
+            <p style="font-size: 0.93rem; margin-bottom: 0.5rem;">
+              <strong style="color: var(--accent-green);">읽을 수 있습니다.</strong>
+              FDP Configurations 로그(<code style="font-size: 0.82rem;">LID 20h</code>, <code style="font-size: 0.82rem;">nvme fdp configs</code>)에
+              <strong>RG 개수 · RUH 개수 · RU 공칭 크기</strong>가 나오고,
+              RUH 서술자의 <code style="font-size: 0.82rem;">RUHT</code> 필드에 <strong style="color: var(--accent-amber);">II냐 PI냐</strong>까지 적혀 있습니다.
+              리눅스도 RUH 개수를 <code style="font-size: 0.82rem;">max_write_streams</code>로 올려 줍니다.
+            </p>
+            <p style="font-size: 0.93rem;">
+              <strong style="color: var(--accent-red);">못 봅니다.</strong>
+              <strong>OP 비율</strong>, <strong>GC victim 선택 정책과 임계값</strong>,
+              RU가 어느 채널·다이에 걸리는지 — 이건 어디에도 안 나옵니다.
+            </p>
             <p style="font-size: 0.92rem; margin-top: 0.6rem; color: var(--text-muted);">
-              전부 펌웨어에 박혀 있고, 호스트에서는 확인할 방법이 없습니다.
+              그리고 읽히든 안 읽히든 공통점이 하나 있습니다. <strong>호스트가 바꿀 수는 없다</strong>는 것.
+              WARP가 에뮬레이터를 만든 이유가 이것입니다.
             </p>
           </div>
           <div class="card" style="padding: 1.1rem 1.3rem;">
@@ -1769,23 +1776,29 @@
           <span style="color: var(--text-muted);">(WARP Fig. 18–19)</span>
         </div>
       
-        <div class="grid-2" style="margin-top: 0.1rem;">
-          <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(56, 189, 248, 0.5);">
-            <h3 style="font-size: 1.08rem; color: var(--accent-blue);">II — 처음 쓸 때만 갈라 둡니다</h3>
-            <p style="font-size: 0.94rem;">
-              Initially Isolated. 호스트가 쓰는 순간에는 RUH별로 나뉘지만,
-              GC가 살아남은 페이지를 옮길 때는 <strong>전부 공용 GC-RUH 한 곳으로 모읍니다.</strong>
-              여유 공간을 한 군데에 몰아 쓰니 <strong style="color: var(--accent-blue);">OP가 빠듯할 때 잘 버팁니다.</strong>
-              대신 시간이 지나면 서로 다른 RUH의 데이터가 한 블록에 섞입니다.
+        <div class="grid-3" style="margin-top: 0.1rem;">
+          <div class="card" style="padding: 0.9rem 1.1rem;">
+            <h3 style="font-size: 1.02rem; color: #94a3b8;">No-FDP — 통합 풀 하나</h3>
+            <p style="font-size: 0.88rem;">
+              Free block 전체를 <strong>단일 풀</strong>로 굴립니다.
+              <strong style="color: var(--accent-blue);">Effective OP는 최대</strong>지만,
+              수명이 다른 I/O가 섞이니 <strong style="color: var(--accent-red);">격리는 0</strong>입니다.
             </p>
           </div>
-          <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(192, 132, 252, 0.5);">
-            <h3 style="font-size: 1.08rem; color: var(--accent-purple);">PI — 복사본까지 원래 자리에 남깁니다</h3>
-            <p style="font-size: 0.94rem;">
-              Persistently Isolated. GC 복사본도 <strong>출신 RUH 안에 그대로</strong> 둡니다. 격리가 끝까지 유지되죠.
-              문제는 <strong>여유 공간이 RUH 개수만큼 쪼개진다는 것</strong>입니다.
-              OP가 부족하면 RUH마다 숨 쉴 틈이 없어져 GC가 잦아지고,
-              <strong style="color: var(--accent-purple);">OP가 넉넉해야 비로소 더 낮은 하한에 도달합니다.</strong>
+          <div class="card" style="padding: 0.9rem 1.1rem; border-color: rgba(56, 189, 248, 0.5);">
+            <h3 style="font-size: 1.02rem; color: var(--accent-blue);">II — 쓸 때만 갈라 둠</h3>
+            <p style="font-size: 0.88rem;">
+              호스트가 쓰는 순간에는 RUH별로 나뉘지만, GC 복사본은 <strong>공용 GC-RUH 한 곳</strong>으로 모입니다.
+              여유 공간이 사실상 한 풀로 남아 <strong style="color: var(--accent-blue);">OP가 빠듯할 때 버팁니다.</strong>
+              대신 시간이 지나면 RUH끼리 한 블록에 섞입니다.
+            </p>
+          </div>
+          <div class="card" style="padding: 0.9rem 1.1rem; border-color: rgba(192, 132, 252, 0.5);">
+            <h3 style="font-size: 1.02rem; color: var(--accent-purple);">PI — 복사본까지 제자리</h3>
+            <p style="font-size: 0.88rem;">
+              RUH마다 <strong>활성 블록과 GC 풀을 따로</strong> 들고 갑니다. 격리는 끝까지 유지되지만
+              <strong style="color: var(--accent-purple);">Effective OP가 RUH 개수만큼 조각납니다.</strong>
+              OP가 빠듯하면 RUH마다 숨 쉴 틈이 없어 GC가 잦아지고, 넉넉해야 비로소 더 낮은 하한에 닿습니다.
             </p>
           </div>
         </div>
@@ -1878,8 +1891,8 @@
               <li><strong>상용 FDP SSD 두 대를 교차 측정</strong>했습니다. 합성 벤치(fio), 프로덕션 트레이스(CacheLib의 kvcache·cdn·twitter), 파일시스템 워크로드(F2FS + Filebench)까지.</li>
               <li><strong>WARP를 만들어 공개</strong>했습니다. FEMU 위에 올린 <strong>최초의 오픈 FDP 에뮬레이터</strong>이고, 이름은 Write Amplification Research Platform의 약자입니다.</li>
               <li>실제 장비의 WAF 추세를 <strong>0.2~0.3 오차</strong>로 따라갑니다.</li>
-              <li>펌웨어가 숨기던 값을 전부 <strong>연구용 노브</strong>로 꺼냈습니다 — II/PI, RU 크기, OP 비율, RUH 개수, GC 휴리스틱.</li>
-              <li>그리고 하드웨어가 절대 안 보여주는 것을 보여줍니다: <strong>RUH별 증폭량, GC가 어느 RU를 골랐는지, RUH끼리 자원을 어떻게 나눠 쓰는지.</strong></li>
+              <li>벤더가 박아 놓고 못 바꾸게 해 둔 값을 전부 <strong>연구용 노브</strong>로 돌려놨습니다 — II/PI, RU 크기, OP 비율, RUH 개수, GC 휴리스틱.</li>
+              <li>그리고 <strong>진짜로 안 보이던 것</strong>을 보여줍니다: <strong>GC가 어느 RU를 victim으로 골랐는지, RUH별 증폭량이 얼마인지, RUH끼리 여유 공간을 어떻게 나눠 쓰는지.</strong></li>
             </ul>
           </div>
           <div class="card" style="padding: 0.85rem 1.2rem; flex: none;">
@@ -1893,7 +1906,7 @@
           <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(52, 211, 153, 0.5);">
             <h3 style="font-size: 1.1rem; color: var(--accent-green);">후배들에게 이게 왜 중요하냐면</h3>
             <ul style="font-size: 0.93rem;">
-              <li><strong>장비가 없어도 시작할 수 있습니다.</strong> FDP SSD는 비싸고, 구해도 내부는 안 보입니다.</li>
+              <li><strong>장비가 없어도 시작할 수 있습니다.</strong> FDP SSD는 비싸고, 구해도 GC 정책은 못 보고 못 바꿉니다.</li>
               <li><strong>실제로 장비가 죽습니다.</strong> 이 논문에서도 SSD B는 평가 도중 쓰기가 누적되어 고장 났고, 그래서 일부 결과만 실렸습니다.</li>
               <li><strong>펌웨어 정책을 직접 바꿔 볼 수 있습니다.</strong> "II 대신 PI였다면?", "RU가 절반이었다면?" 같은 질문을 실험으로 만들 수 있습니다.</li>
             </ul>
