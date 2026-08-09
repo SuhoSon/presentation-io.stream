@@ -4,10 +4,18 @@
 </div>
 <div class="slide-body">
   <div class="highlight-box">
-    <div class="highlight-title">이 논문의 결론 한 줄</div>
-    <p style="font-size: 1.15rem; line-height: 1.7;">
-      WAF를 결정하는 건 <strong>스트림 개수가 아니라, 묶음이 수명에 맞느냐(coherence)</strong>다.
-      잘 맞게 묶으면 스트림 절반으로 완전 격리와 비슷하게 나오고, 잘못 묶으면 FDP를 아예 안 쓴 것보다 나빠질 수 있다.
+    <div class="highlight-title">이 논문의 주장, 그리고 근거</div>
+    <p style="font-size: 1.05rem; line-height: 1.65;">
+      <strong style="color: var(--accent-green);">주장 —</strong> 배치 스트림을 정하는 주체는 애플리케이션이 아니라
+      <strong>운영자여야 한다(operator-controlled).</strong>
+      한 노드에 누가 같이 떠 있고 누가 오래 사는 데이터를 만드는지 아는 쪽은 운영자이고,
+      그 단위는 이미 <strong>cgroup</strong>으로 존재한다.
+    </p>
+    <p style="font-size: 1.05rem; line-height: 1.65; margin-top: 0.6rem;">
+      <strong style="color: var(--accent-blue);">근거 —</strong> WAF를 결정하는 건
+      <strong>스트림 개수가 아니라 묶음이 수명에 맞느냐(coherence)</strong>다.
+      잘 맞게 묶으면 스트림 절반으로 완전 격리와 비슷하고, 잘못 묶으면 FDP를 아예 안 쓴 것보다 나쁘다.
+      <strong>그 정합성을 공급할 수 있는 사람이 운영자다.</strong>
     </p>
   </div>
   <div class="grid-3" style="margin-top: 0.4rem;">

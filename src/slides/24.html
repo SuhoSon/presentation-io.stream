@@ -1,37 +1,63 @@
 <div class="slide-header">
-  <h2>Q &amp; A</h2>
-  <div class="slide-subtitle">들어주셔서 감사합니다</div>
+  <h2>두 논문을 겹쳐 놓으면 빈칸이 보입니다</h2>
+  <div class="slide-subtitle">아래 세 가지는 두 논문 어디에도 없는, 우리가 붙여 본 조합입니다</div>
 </div>
-<div class="slide-body" style="justify-content: center;">
-  <div class="grid-3">
-    <div class="card" style="border-color: rgba(56, 189, 248, 0.5);">
-      <h3>Part 1에서 답한 것</h3>
-      <ul style="font-size: 0.97rem;">
-        <li><strong>Q1.</strong> FDP만 켜면? → 아무 일도 안 생기고, 오히려 조금 나빠집니다.</li>
-        <li><strong>Q2.</strong> 스트림을 많이 주면? → 다 쓴 쪽이 꼴찌였습니다(2.36).</li>
-        <li><strong>Q3.</strong> 실제 앱에서도? → 됩니다. 단 <strong>묶는 기준이 전부</strong>입니다.</li>
-      </ul>
+<div class="slide-body">
+  <div class="card" style="padding: 0.9rem 1.3rem; flex: none;">
+    <p style="font-size: 1rem;">
+      <strong style="color: var(--accent-green);">io.stream</strong>은 호스트 쪽 노브를 열었습니다 — 어떤 cgroup을 어느 스트림에 보낼 것인가.
+      <strong style="color: var(--accent-purple);">WARP</strong>는 장비 쪽 노브를 열었습니다 — II/PI, RU 크기, OP, GC 정책.
+      <strong>둘을 동시에 돌려 본 사람은 아직 없습니다.</strong>
+    </p>
+  </div>
+
+  <div class="grid-3" style="margin-top: 0.2rem;">
+    <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
+      <h3 style="font-size: 1.06rem; color: var(--accent-green);">① 호스트 매핑 × 장비 정책 공동 설계</h3>
+      <p style="font-size: 0.92rem;">
+        io.stream의 cgroup 매핑을 WARP 위에 얹고, II/PI와 RU 크기를 같이 흔들어 봅니다.
+      </p>
+      <p style="font-size: 0.92rem; margin-top: 0.55rem;">
+        <strong>물어볼 것:</strong> 매핑이 정합적일 때는 PI가 확실히 유리한가? 반대로 매핑이 엉성하면 II가 그 실수를 덮어 주는가?
+      </p>
+      <p style="font-size: 0.9rem; margin-top: 0.55rem; color: var(--text-muted);">
+        실제 장비로는 II/PI를 못 바꾸니 애초에 물어볼 수 없던 질문입니다.
+      </p>
     </div>
-    <div class="card" style="border-color: rgba(192, 132, 252, 0.5);">
-      <h3>Part 2에서 본 것</h3>
-      <ul style="font-size: 0.97rem;">
-        <li>같은 "FDP 지원"이라도 <strong>장비마다 WAF가 1.75배 차이</strong>납니다.</li>
-        <li><strong>II와 PI</strong>의 승부는 <strong>OP 예산</strong>이 가릅니다(교차점 7~9%).</li>
-        <li>호스트가 잘해도 <strong>Noisy RUH·Save Sequential</strong>로 깨질 수 있습니다.</li>
-        <li><strong>WARP</strong>가 그 안을 들여다볼 수 있게 열어 줬습니다.</li>
-      </ul>
+
+    <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
+      <h3 style="font-size: 1.06rem; color: var(--accent-amber);">② 스트림 하나의 값을 OP로 환산하기</h3>
+      <p style="font-size: 0.92rem;">
+        io.stream은 "회수 유닛을 세우면 유효 OP가 준다"고 말했지만, <strong>얼마나 주는지는 세지 못했습니다.</strong>
+        장비 안이 안 보였으니까요.
+      </p>
+      <p style="font-size: 0.92rem; margin-top: 0.55rem;">
+        <strong>물어볼 것:</strong> 스트림을 하나 더 세우는 비용은 OP 몇 %인가? 그 값이 있으면
+        <strong>"스트림 N개를 쓸 만한가"를 계산으로 답할 수 있습니다.</strong>
+      </p>
     </div>
-    <div class="card" style="border-color: rgba(129, 140, 248, 0.5);">
-      <h3>더 볼 자료</h3>
-      <ul style="font-size: 0.97rem;">
-        <li>io.stream: <code style="font-size: 0.8rem;">DOI 10.1145/3837053.3837343</code></li>
-        <li>WARP: FAST '26 · 코드는 <code style="font-size: 0.8rem;">MoatLab/FEMU</code></li>
-        <li>커널 배경: cgroup v2 I/O 컨트롤러, cgroup writeback, 블록 계층 write stream</li>
-        <li>부록에 실험 설정과 예상 질문을 붙여 뒀습니다 <span style="color: var(--text-muted);">(→ 다음 두 장)</span></li>
-      </ul>
+
+    <div class="card" style="border-color: rgba(129, 140, 248, 0.45);">
+      <h3 style="font-size: 1.06rem; color: var(--accent-indigo);">③ 시끄러운 RUH를 cgroup으로 누르기</h3>
+      <p style="font-size: 0.92rem;">
+        Noisy RUH는 <strong>결국 시끄러운 테넌트</strong>입니다. 그런데 io.stream은
+        <code>io.max</code>·<code>io.weight</code>와 <strong>같은 컨트롤러 안에</strong> 있습니다.
+      </p>
+      <p style="font-size: 0.92rem; margin-top: 0.55rem;">
+        <strong>물어볼 것:</strong> 배치를 갈라 주는 것과 속도를 눌러 주는 것을 <strong>한 정책으로 같이</strong> 하면 어떻게 되나?
+        스트림만 가르는 것보다 나은가?
+      </p>
     </div>
+  </div>
+
+  <div class="highlight-box" style="margin-top: 0.2rem; padding: 0.9rem 1.3rem;">
+    <p style="font-size: 1rem;">
+      셋 다 <strong>새 인터페이스를 설계할 필요가 없습니다.</strong> cgroup 계층, blkcg 라벨, 300줄짜리 훅, 그리고 오픈된 에뮬레이터가 이미 있습니다.
+      바꿀 것은 <strong>정책뿐</strong>이라, 학부 인턴이나 석사 첫 학기에도 손댈 수 있는 크기입니다.
+    </p>
   </div>
 </div>
 <div class="notes">
-  질문이 안 나오면 부록 A의 첫 질문("cgroup 안에 수명이 섞이면 어떻게 하나")을 내가 먼저 꺼내서 시작한다.
+  이 장은 논문 요약이 아니라 제안이다. 그렇게 말하고 넘어갈 것 — 두 논문 어디에도 이 조합은 없다.
+  ①은 FTL·디바이스 쪽, ②는 측정·모델링 쪽, ③은 커널 정책 쪽에 가깝다. 관심사에 따라 고르면 된다.
 </div>

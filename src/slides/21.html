@@ -1,64 +1,77 @@
 <div class="slide-header">
-  <h2>FDP 특성 ②: FDP가 깨지는 세 가지 방식</h2>
-  <div class="slide-subtitle">호스트가 태깅을 했는데도 이득이 사라지는 경우들 — 전부 실제 장비에서 관측된 것입니다</div>
+  <h2>FDP 특성 ②: 그래서 II와 PI 중 뭐가 유리한가</h2>
+  <div class="slide-subtitle">앞 장의 Effective OP 차이가 실제 WAF로 어떻게 나타나는지. OP 예산이 순위를 뒤집습니다</div>
 </div>
 <div class="slide-body">
-  <div class="grid-3">
-    <div class="card" style="border-color: rgba(248, 113, 113, 0.45);">
-      <h3 style="font-size: 1.08rem; color: var(--accent-red);">① 분류가 너무 거칠 때</h3>
-      <p style="font-size: 0.93rem;">
-        F2FS는 FDP 힌트를 지원합니다. 그런데 Filebench Fileserver를 돌려놓고 eBPF로 실제 힌트를 세어 보니,
-        <strong style="color: var(--accent-red);">사용자 데이터 쓰기의 99%가 WARM 하나</strong>로 몰려 있었습니다.
-      </p>
-      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-        결국 거의 모든 쓰기가 RUH 하나로 들어가고, WAF 곡선은 <strong>FDP를 안 켠 것과 겹칩니다.</strong>
-        노드와 메타데이터는 분리되지만 그것만으로는 부족했습니다.
-      </p>
-      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--accent-amber);">
-        <strong>"FDP를 지원한다"와 "FDP 덕을 본다"는 다른 말입니다.</strong>
-      </p>
+  <div class="wafchart">
+    <div class="wafbar">
+      <span class="wafnum">2.92</span>
+      <div class="wafcol" data-tone="ok" style="height: 58%;"></div>
+      <span class="waflabel"><b>II</b><em>OP 3%</em></span>
     </div>
-
-    <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
-      <h3 style="font-size: 1.08rem; color: var(--accent-amber);">② Noisy RUH</h3>
-      <p style="font-size: 0.93rem;">
-        한 RUH에서 무효화가 몰아치면 <strong>다른 RUH의 증폭까지 같이 올라갑니다.</strong>
-        80/20 워크로드에서, 무효화만 하는 스트림이 GC를 재촉하자
-        트래픽 양은 그대로인 옆 RUH의 증폭 기여도가 <strong>전체의 26%</strong>까지 올라갔습니다.
-      </p>
-      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-        RUH는 <strong>이름만 격리</strong>일 뿐, GC 압력과 여유 공간은 결국 <strong>한 장비 안에서 공유</strong>됩니다.
-      </p>
-      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--text-muted);">
-        에뮬레이터에서 먼저 보였고, 상용 장비 두 대에서도 같은 패턴이 나왔습니다.
-      </p>
+    <div class="wafbar">
+      <span class="wafnum">3.81</span>
+      <div class="wafcol" data-tone="purple" style="height: 85%;"></div>
+      <span class="waflabel"><b>PI</b><em>OP 3%</em></span>
     </div>
-
-    <div class="card" style="border-color: rgba(129, 140, 248, 0.45);">
-      <h3 style="font-size: 1.08rem; color: var(--accent-indigo);">③ Save Sequential</h3>
-      <p style="font-size: 0.93rem;">
-        순차 쓰기 스트림은 스스로 통째로 무효화되니 안전할 것 같습니다.
-        그런데 OP가 빠듯하고 GC 휴리스틱이 급하면, 장비가 <strong>곧 덮어써질 데이터를 미리 회수해</strong> 버립니다.
-      </p>
-      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-        그 결과 전체 트래픽의 88%를 차지하던 <strong>순차 RUH가 오히려 WAF의 최대 기여자</strong>가 됐습니다.
-      </p>
-      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--accent-indigo);">
-        <strong>시끄러운 쪽이 아니라 덩치 큰 쪽이 대가를 치릅니다.</strong>
-      </p>
+    <div class="wafbar">
+      <span class="wafnum">2.19</span>
+      <div class="wafcol" data-tone="ok" style="height: 36%;"></div>
+      <span class="waflabel"><b>II</b><em>OP 5%</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">2.37</span>
+      <div class="wafcol" data-tone="purple" style="height: 42%;"></div>
+      <span class="waflabel"><b>PI</b><em>OP 5%</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.34</span>
+      <div class="wafcol" data-tone="ok" style="height: 10%;"></div>
+      <span class="waflabel"><b>II</b><em>OP 10%</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.18</span>
+      <div class="wafcol" data-tone="purple" style="height: 5%;"></div>
+      <span class="waflabel"><b>PI</b><em>OP 10%</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.09</span>
+      <div class="wafcol" data-tone="ok" style="height: 3%;"></div>
+      <span class="waflabel"><b>II</b><em>OP 14%</em></span>
+    </div>
+    <div class="wafbar">
+      <span class="wafnum">1.06</span>
+      <div class="wafcol" data-tone="purple" style="height: 2%;"></div>
+      <span class="waflabel"><b>PI</b><em>OP 14%</em></span>
     </div>
   </div>
+  <div class="axis-note">
+    80/20 워크로드, RU 256 MB, 장비 용량의 5배를 쓴 뒤 측정.
+    <strong style="color: var(--accent-amber);">OP 7~9% 부근에서 순위가 뒤집힙니다.</strong>
+    <span style="color: var(--text-muted);">(WARP Fig. 18–19)</span>
+  </div>
 
-  <div class="highlight-box" style="margin-top: 0.2rem; padding: 1rem 1.3rem;">
-    <p style="font-size: 1.02rem;">
-      세 가지 모두 <strong>호스트가 수명을 제대로 갈랐는지와는 별개로</strong> 일어납니다.
-      즉 Part 1에서 본 <strong>매핑의 수명 정합성은 필요조건이지 충분조건이 아닙니다.</strong>
-      나머지 절반은 장비 안에 있고, 그 절반은 지금까지 아무도 열어 볼 수 없었습니다.
-    </p>
+  <div class="grid-2" style="margin-top: 0.1rem;">
+    <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(56, 189, 248, 0.5);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-blue);">OP가 빠듯하면 II</h3>
+      <p style="font-size: 0.94rem;">
+        여유 공간이 <strong>공용 GC-RUH 한 곳에 모여</strong> 있으니, GC 부담을 스트림들끼리 나눠서 흡수합니다.
+        OP 3%에서 <strong>2.92 대 3.81</strong>, 5%에서 <strong>2.19 대 2.37</strong>로 II가 앞섭니다.
+        호스트 분류가 엉성하거나 워크로드가 뒤섞일 때도 <strong style="color: var(--accent-blue);">II가 더 잘 버팁니다.</strong>
+      </p>
+    </div>
+    <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(192, 132, 252, 0.5);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-purple);">OP가 넉넉하면 PI</h3>
+      <p style="font-size: 0.94rem;">
+        RUH마다 자기 여유 공간을 쥐고 있으니 <strong>스트림끼리 간섭이 없습니다.</strong>
+        OP 10%에서 <strong>1.18 대 1.34</strong>, 14%에서 <strong>1.06 대 1.09</strong>로 뒤집힙니다.
+        <strong style="color: var(--accent-purple);">PI의 하한이 더 낮지만</strong>, 거기 닿으려면 조각난 만큼의 OP를 먼저 내줘야 합니다.
+      </p>
+    </div>
   </div>
 </div>
+<div class="takeaway" data-tone="purple">💡 "II가 낫다 / PI가 낫다"는 문장은 성립하지 않는다. <em>OP 예산이 얼마냐</em>를 먼저 말해야 한다.</div>
 <div class="notes">
-  ①은 "우리 파일시스템도 FDP 됩니다"를 곧이곧대로 믿으면 안 된다는 사례,
-  ②③은 호스트가 아무리 잘해도 장비가 망칠 수 있다는 사례다.
-  다음 장의 WARP는 정확히 이 "열어 볼 수 없다"를 푸는 도구다.
+  교차점은 RU 크기에 따라서도 움직인다. RU 128MB에서는 더 낮은 OP에서 뒤집힌다.
+  그러니 "우리 장비는 II입니다"라는 말만으로는 좋은지 나쁜지 알 수 없고, OP가 얼마인지를 같이 물어야 한다.
 </div>

@@ -1,63 +1,50 @@
 <div class="slide-header">
-  <h2>두 논문을 겹쳐 놓으면 빈칸이 보입니다</h2>
-  <div class="slide-subtitle">아래 세 가지는 두 논문 어디에도 없는, 우리가 붙여 본 조합입니다</div>
+  <h2>WARP — FDP SSD를 열어 보는 오픈 에뮬레이터</h2>
+  <div class="slide-subtitle">Inho Song 외, <em>Characterizing and Emulating FDP SSDs with WARP</em>, USENIX FAST '26 (pp. 347–362)</div>
 </div>
-<div class="slide-body">
-  <div class="card" style="padding: 0.9rem 1.3rem; flex: none;">
-    <p style="font-size: 1rem;">
-      <strong style="color: var(--accent-green);">io.stream</strong>은 호스트 쪽 노브를 열었습니다 — 어떤 cgroup을 어느 스트림에 보낼 것인가.
-      <strong style="color: var(--accent-purple);">WARP</strong>는 장비 쪽 노브를 열었습니다 — II/PI, RU 크기, OP, GC 정책.
-      <strong>둘을 동시에 돌려 본 사람은 아직 없습니다.</strong>
-    </p>
-  </div>
-
-  <div class="grid-3" style="margin-top: 0.2rem;">
-    <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
-      <h3 style="font-size: 1.06rem; color: var(--accent-green);">① 호스트 매핑 × 장비 정책 공동 설계</h3>
-      <p style="font-size: 0.92rem;">
-        io.stream의 cgroup 매핑을 WARP 위에 얹고, II/PI와 RU 크기를 같이 흔들어 봅니다.
-      </p>
-      <p style="font-size: 0.92rem; margin-top: 0.55rem;">
-        <strong>물어볼 것:</strong> 매핑이 정합적일 때는 PI가 확실히 유리한가? 반대로 매핑이 엉성하면 II가 그 실수를 덮어 주는가?
-      </p>
-      <p style="font-size: 0.9rem; margin-top: 0.55rem; color: var(--text-muted);">
-        실제 장비로는 II/PI를 못 바꾸니 애초에 물어볼 수 없던 질문입니다.
-      </p>
+<div class="slide-body grid-2">
+  <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
+    <div class="card" style="padding: 1.1rem 1.3rem;">
+      <h3 style="font-size: 1.1rem;">무엇을 했나</h3>
+      <ul style="font-size: 0.93rem;">
+        <li><strong>상용 FDP SSD 두 대를 교차 측정</strong>했습니다. 합성 벤치(fio), 프로덕션 트레이스(CacheLib의 kvcache·cdn·twitter), 파일시스템 워크로드(F2FS + Filebench)까지.</li>
+        <li><strong>WARP를 만들어 공개</strong>했습니다. FEMU 위에 올린 <strong>최초의 오픈 FDP 에뮬레이터</strong>이고, 이름은 Write Amplification Research Platform의 약자입니다.</li>
+        <li>실제 장비의 WAF 추세를 <strong>0.2~0.3 오차</strong>로 따라갑니다.</li>
+        <li>벤더가 박아 놓고 못 바꾸게 해 둔 값을 전부 <strong>연구용 노브</strong>로 돌려놨습니다 — II/PI, RU 크기, OP 비율, RUH 개수, GC 휴리스틱.</li>
+        <li>그리고 <strong>진짜로 안 보이던 것</strong>을 보여줍니다: <strong>GC가 어느 RU를 victim으로 골랐는지, RUH별 증폭량이 얼마인지, RUH끼리 여유 공간을 어떻게 나눠 쓰는지.</strong></li>
+      </ul>
     </div>
-
-    <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
-      <h3 style="font-size: 1.06rem; color: var(--accent-amber);">② 스트림 하나의 값을 OP로 환산하기</h3>
-      <p style="font-size: 0.92rem;">
-        io.stream은 "회수 유닛을 세우면 유효 OP가 준다"고 말했지만, <strong>얼마나 주는지는 세지 못했습니다.</strong>
-        장비 안이 안 보였으니까요.
-      </p>
-      <p style="font-size: 0.92rem; margin-top: 0.55rem;">
-        <strong>물어볼 것:</strong> 스트림을 하나 더 세우는 비용은 OP 몇 %인가? 그 값이 있으면
-        <strong>"스트림 N개를 쓸 만한가"를 계산으로 답할 수 있습니다.</strong>
-      </p>
-    </div>
-
-    <div class="card" style="border-color: rgba(129, 140, 248, 0.45);">
-      <h3 style="font-size: 1.06rem; color: var(--accent-indigo);">③ 시끄러운 RUH를 cgroup으로 누르기</h3>
-      <p style="font-size: 0.92rem;">
-        Noisy RUH는 <strong>결국 시끄러운 테넌트</strong>입니다. 그런데 io.stream은
-        <code>io.max</code>·<code>io.weight</code>와 <strong>같은 컨트롤러 안에</strong> 있습니다.
-      </p>
-      <p style="font-size: 0.92rem; margin-top: 0.55rem;">
-        <strong>물어볼 것:</strong> 배치를 갈라 주는 것과 속도를 눌러 주는 것을 <strong>한 정책으로 같이</strong> 하면 어떻게 되나?
-        스트림만 가르는 것보다 나은가?
+    <div class="card" style="padding: 0.85rem 1.2rem; flex: none;">
+      <p style="font-size: 0.9rem; color: var(--text-muted);">
+        코드는 FEMU에 업스트림되어 있습니다 · <code style="font-size: 0.82rem;">github.com/MoatLab/FEMU</code>
       </p>
     </div>
   </div>
 
-  <div class="highlight-box" style="margin-top: 0.2rem; padding: 0.9rem 1.3rem;">
-    <p style="font-size: 1rem;">
-      셋 다 <strong>새 인터페이스를 설계할 필요가 없습니다.</strong> cgroup 계층, blkcg 라벨, 300줄짜리 훅, 그리고 오픈된 에뮬레이터가 이미 있습니다.
-      바꿀 것은 <strong>정책뿐</strong>이라, 학부 인턴이나 석사 첫 학기에도 손댈 수 있는 크기입니다.
-    </p>
+  <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(52, 211, 153, 0.5);">
+      <h3 style="font-size: 1.1rem; color: var(--accent-green);">후배들에게 이게 왜 중요하냐면</h3>
+      <ul style="font-size: 0.93rem;">
+        <li><strong>장비가 없어도 시작할 수 있습니다.</strong> FDP SSD는 비싸고, 구해도 GC 정책은 못 보고 못 바꿉니다.</li>
+        <li><strong>실제로 장비가 죽습니다.</strong> 이 논문에서도 SSD B는 평가 도중 쓰기가 누적되어 고장 났고, 그래서 일부 결과만 실렸습니다.</li>
+        <li><strong>펌웨어 정책을 직접 바꿔 볼 수 있습니다.</strong> "II 대신 PI였다면?", "RU가 절반이었다면?" 같은 질문을 실험으로 만들 수 있습니다.</li>
+      </ul>
+    </div>
+    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(251, 191, 36, 0.5);">
+      <h3 style="font-size: 1.1rem; color: var(--accent-amber);">노브 하나 돌려서 얻은 예시</h3>
+      <p style="font-size: 0.93rem;">
+        CacheLib kvcache 트레이스(SOC 40%)에서 <strong>NoFDP 2.0 → FDP 1.37</strong>까지는 호스트가 만든 이득입니다.
+        여기에 작은 객체 캐시 RUH에만 <strong>한 채널짜리 작은 RU</strong>를 배정했더니 <strong style="color: var(--accent-amber);">1.16</strong>까지 더 내려갔습니다.
+      </p>
+      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+        호스트를 하나도 안 고치고 <strong>장비 쪽 설정만 바꿔서</strong> 얻은 개선입니다.
+        논문은 여기서 <strong>워크로드에 따라 RU 크기를 바꾸는 방향</strong>을 다음 과제로 제안합니다.
+      </p>
+    </div>
   </div>
 </div>
+<div class="takeaway" data-tone="green">💡 io.stream이 "누가 묶을지"를 열었다면, WARP는 "묶은 뒤 장비 안에서 무슨 일이 벌어지는지"를 열었다.</div>
 <div class="notes">
-  이 장은 논문 요약이 아니라 제안이다. 그렇게 말하고 넘어갈 것 — 두 논문 어디에도 이 조합은 없다.
-  ①은 FTL·디바이스 쪽, ②는 측정·모델링 쪽, ③은 커널 정책 쪽에 가깝다. 관심사에 따라 고르면 된다.
+  FAST는 스토리지 분야 최상위 학회다. 워크숍 논문(HotStorage)과 정규 논문(FAST)이 각각 어떤 역할을 하는지도 여기서 한 번 짚어주면 좋다.
+  링크: usenix.org/conference/fast26/presentation/song
 </div>

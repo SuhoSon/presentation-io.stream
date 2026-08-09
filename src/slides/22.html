@@ -1,50 +1,64 @@
 <div class="slide-header">
-  <h2>WARP — FDP SSD를 열어 보는 오픈 에뮬레이터</h2>
-  <div class="slide-subtitle">Inho Song 외, <em>Characterizing and Emulating FDP SSDs with WARP</em>, USENIX FAST '26 (pp. 347–362)</div>
+  <h2>FDP 특성 ③: FDP가 깨지는 세 가지 방식</h2>
+  <div class="slide-subtitle">호스트가 태깅을 했는데도 이득이 사라지는 경우들 — 전부 실제 장비에서 관측된 것입니다</div>
 </div>
-<div class="slide-body grid-2">
-  <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
-    <div class="card" style="padding: 1.1rem 1.3rem;">
-      <h3 style="font-size: 1.1rem;">무엇을 했나</h3>
-      <ul style="font-size: 0.93rem;">
-        <li><strong>상용 FDP SSD 두 대를 교차 측정</strong>했습니다. 합성 벤치(fio), 프로덕션 트레이스(CacheLib의 kvcache·cdn·twitter), 파일시스템 워크로드(F2FS + Filebench)까지.</li>
-        <li><strong>WARP를 만들어 공개</strong>했습니다. FEMU 위에 올린 <strong>최초의 오픈 FDP 에뮬레이터</strong>이고, 이름은 Write Amplification Research Platform의 약자입니다.</li>
-        <li>실제 장비의 WAF 추세를 <strong>0.2~0.3 오차</strong>로 따라갑니다.</li>
-        <li>벤더가 박아 놓고 못 바꾸게 해 둔 값을 전부 <strong>연구용 노브</strong>로 돌려놨습니다 — II/PI, RU 크기, OP 비율, RUH 개수, GC 휴리스틱.</li>
-        <li>그리고 <strong>진짜로 안 보이던 것</strong>을 보여줍니다: <strong>GC가 어느 RU를 victim으로 골랐는지, RUH별 증폭량이 얼마인지, RUH끼리 여유 공간을 어떻게 나눠 쓰는지.</strong></li>
-      </ul>
+<div class="slide-body">
+  <div class="grid-3">
+    <div class="card" style="border-color: rgba(248, 113, 113, 0.45);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-red);">① 분류가 너무 거칠 때</h3>
+      <p style="font-size: 0.93rem;">
+        F2FS는 FDP 힌트를 지원합니다. 그런데 Filebench Fileserver를 돌려놓고 eBPF로 실제 힌트를 세어 보니,
+        <strong style="color: var(--accent-red);">사용자 데이터 쓰기의 99%가 WARM 하나</strong>로 몰려 있었습니다.
+      </p>
+      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+        결국 거의 모든 쓰기가 RUH 하나로 들어가고, WAF 곡선은 <strong>FDP를 안 켠 것과 겹칩니다.</strong>
+        노드와 메타데이터는 분리되지만 그것만으로는 부족했습니다.
+      </p>
+      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--accent-amber);">
+        <strong>"FDP를 지원한다"와 "FDP 덕을 본다"는 다른 말입니다.</strong>
+      </p>
     </div>
-    <div class="card" style="padding: 0.85rem 1.2rem; flex: none;">
-      <p style="font-size: 0.9rem; color: var(--text-muted);">
-        코드는 FEMU에 업스트림되어 있습니다 · <code style="font-size: 0.82rem;">github.com/MoatLab/FEMU</code>
+
+    <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-amber);">② Noisy RUH</h3>
+      <p style="font-size: 0.93rem;">
+        한 RUH에서 무효화가 몰아치면 <strong>다른 RUH의 증폭까지 같이 올라갑니다.</strong>
+        80/20 워크로드에서, 무효화만 하는 스트림이 GC를 재촉하자
+        트래픽 양은 그대로인 옆 RUH의 증폭 기여도가 <strong>전체의 26%</strong>까지 올라갔습니다.
+      </p>
+      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+        RUH는 <strong>이름만 격리</strong>일 뿐, GC 압력과 여유 공간은 결국 <strong>한 장비 안에서 공유</strong>됩니다.
+      </p>
+      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--text-muted);">
+        에뮬레이터에서 먼저 보였고, 상용 장비 두 대에서도 같은 패턴이 나왔습니다.
+      </p>
+    </div>
+
+    <div class="card" style="border-color: rgba(129, 140, 248, 0.45);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-indigo);">③ Save Sequential</h3>
+      <p style="font-size: 0.93rem;">
+        순차 쓰기 스트림은 스스로 통째로 무효화되니 안전할 것 같습니다.
+        그런데 OP가 빠듯하고 GC 휴리스틱이 급하면, 장비가 <strong>곧 덮어써질 데이터를 미리 회수해</strong> 버립니다.
+      </p>
+      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+        그 결과 전체 트래픽의 88%를 차지하던 <strong>순차 RUH가 오히려 WAF의 최대 기여자</strong>가 됐습니다.
+      </p>
+      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--accent-indigo);">
+        <strong>시끄러운 쪽이 아니라 덩치 큰 쪽이 대가를 치릅니다.</strong>
       </p>
     </div>
   </div>
 
-  <div style="display: flex; flex-direction: column; gap: 0.9rem;">
-    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(52, 211, 153, 0.5);">
-      <h3 style="font-size: 1.1rem; color: var(--accent-green);">후배들에게 이게 왜 중요하냐면</h3>
-      <ul style="font-size: 0.93rem;">
-        <li><strong>장비가 없어도 시작할 수 있습니다.</strong> FDP SSD는 비싸고, 구해도 GC 정책은 못 보고 못 바꿉니다.</li>
-        <li><strong>실제로 장비가 죽습니다.</strong> 이 논문에서도 SSD B는 평가 도중 쓰기가 누적되어 고장 났고, 그래서 일부 결과만 실렸습니다.</li>
-        <li><strong>펌웨어 정책을 직접 바꿔 볼 수 있습니다.</strong> "II 대신 PI였다면?", "RU가 절반이었다면?" 같은 질문을 실험으로 만들 수 있습니다.</li>
-      </ul>
-    </div>
-    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(251, 191, 36, 0.5);">
-      <h3 style="font-size: 1.1rem; color: var(--accent-amber);">노브 하나 돌려서 얻은 예시</h3>
-      <p style="font-size: 0.93rem;">
-        CacheLib kvcache 트레이스(SOC 40%)에서 <strong>NoFDP 2.0 → FDP 1.37</strong>까지는 호스트가 만든 이득입니다.
-        여기에 작은 객체 캐시 RUH에만 <strong>한 채널짜리 작은 RU</strong>를 배정했더니 <strong style="color: var(--accent-amber);">1.16</strong>까지 더 내려갔습니다.
-      </p>
-      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-        호스트를 하나도 안 고치고 <strong>장비 쪽 설정만 바꿔서</strong> 얻은 개선입니다.
-        논문은 여기서 <strong>워크로드에 따라 RU 크기를 바꾸는 방향</strong>을 다음 과제로 제안합니다.
-      </p>
-    </div>
+  <div class="highlight-box" style="margin-top: 0.2rem; padding: 1rem 1.3rem;">
+    <p style="font-size: 1.02rem;">
+      세 가지 모두 <strong>호스트가 수명을 제대로 갈랐는지와는 별개로</strong> 일어납니다.
+      즉 Part 1에서 본 <strong>매핑의 수명 정합성은 필요조건이지 충분조건이 아닙니다.</strong>
+      나머지 절반은 장비 안에 있고, 그 절반은 지금까지 아무도 열어 볼 수 없었습니다.
+    </p>
   </div>
 </div>
-<div class="takeaway" data-tone="green">💡 io.stream이 "누가 묶을지"를 열었다면, WARP는 "묶은 뒤 장비 안에서 무슨 일이 벌어지는지"를 열었다.</div>
 <div class="notes">
-  FAST는 스토리지 분야 최상위 학회다. 워크숍 논문(HotStorage)과 정규 논문(FAST)이 각각 어떤 역할을 하는지도 여기서 한 번 짚어주면 좋다.
-  링크: usenix.org/conference/fast26/presentation/song
+  ①은 "우리 파일시스템도 FDP 됩니다"를 곧이곧대로 믿으면 안 된다는 사례,
+  ②③은 호스트가 아무리 잘해도 장비가 망칠 수 있다는 사례다.
+  다음 장의 WARP는 정확히 이 "열어 볼 수 없다"를 푸는 도구다.
 </div>

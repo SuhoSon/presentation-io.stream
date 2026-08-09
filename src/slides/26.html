@@ -1,51 +1,44 @@
 <div class="slide-header">
-  <h2>부록 B. 재현을 위한 설정<span class="appendix-badge">APPENDIX</span></h2>
-  <div class="slide-subtitle">워크로드 구성과 단계별 파라미터입니다</div>
+  <h2>부록 A. 나올 만한 질문<span class="appendix-badge">APPENDIX</span></h2>
+  <div class="slide-subtitle">논문이 답할 수 있는 질문과 못 하는 질문을 나눠 뒀습니다</div>
 </div>
 <div class="slide-body grid-2">
-  <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
-    <div class="card" style="padding: 1.1rem 1.3rem;">
-      <h3 style="font-size: 1.1rem;">Stage 3 — 무수정 컨테이너 4종</h3>
-      <table class="datatable" style="margin-top: 0.2rem;">
-        <thead>
-          <tr><th>앱</th><th>이미지</th><th>벤치마크</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>RocksDB</td><td><code style="font-size: 0.78rem;">alpine:3.20</code><br><span style="color: var(--text-muted); font-size: 0.82rem;">+ db_bench v11.5.0</span></td><td>fillrandom<br><span style="color: var(--text-muted); font-size: 0.82rem;">40억 키</span></td></tr>
-          <tr><td>PostgreSQL</td><td><code style="font-size: 0.78rem;">postgres:15</code></td><td>pgbench<br><span style="color: var(--text-muted); font-size: 0.82rem;">32 클라이언트 / 4 스레드</span></td></tr>
-          <tr><td>Kafka</td><td><code style="font-size: 0.78rem;">apache/kafka:4.2.1</code></td><td>producer-perf-test<br><span style="color: var(--text-muted); font-size: 0.82rem;">1 KB, 스로틀 없음</span></td></tr>
-          <tr><td>MongoDB</td><td><code style="font-size: 0.78rem;">mongo:6.0</code></td><td>bulk insertMany</td></tr>
-        </tbody>
-      </table>
-      <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.6rem;">
-        공식 이미지를 그대로 쓰고, 배치는 컨테이너의 cgroup을 스트림에 매핑하는 것만으로 지정합니다.
-        RocksDB는 direct I/O를 꺼서 flush와 컴팩션 쓰기가 페이지 캐시를 지나가게 만들었습니다.
-      </p>
-    </div>
+  <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
+    <h3 style="color: var(--accent-green);">논문 안에 답이 있는 질문</h3>
+    <ul style="font-size: 0.93rem;">
+      <li><strong>"cgroup 하나에 수명이 섞여 있으면요?"</strong><br>
+        굵직한 근사치라는 걸 논문이 먼저 인정합니다. 앱 안쪽은 per-I/O 태깅이 할 일이고, sentinel 규칙 덕분에 <strong>둘을 같이 쓸 수 있습니다.</strong></li>
+      <li><strong>"cgroup이 스트림보다 훨씬 많으면요?"</strong><br>
+        Stage 2가 딱 그 상황입니다(14 대 7). 기본 정책이 해시가 아니라 <strong>fallback</strong>이라, 자리 없는 cgroup은 기본 스트림으로 갈 뿐 <strong>남의 스트림을 건드리지 않습니다.</strong></li>
+      <li><strong>"운영자가 수명을 잘못 판단하면요?"</strong><br>
+        그거 확인하려고 한 게 Blind(1.30)와 Oblivious(2.36)입니다. <strong>잘못 묶으면 FDP-default보다 나쁩니다.</strong> 확신 없으면 그냥 기본으로 흘리는 게 안전합니다.</li>
+      <li><strong>"앱이 이미 io_uring으로 스트림을 지정했다면요?"</strong><br>
+        앱이 넣은 값이 <strong>항상 이깁니다.</strong> 앱이 0을 넣은 경우까지 그대로 살려 둡니다.</li>
+      <li><strong>"오버헤드는요?"</strong><br>
+        bio 하나당 필드 하나 채우는 게 전부고, fast path에서 메모리도 안 잡습니다. IOPS·p99 차이 <strong>1% 미만.</strong></li>
+    </ul>
   </div>
 
-  <div style="display: flex; flex-direction: column; gap: 0.9rem;">
-    <div class="card" style="padding: 1.1rem 1.3rem;">
-      <h3 style="font-size: 1.1rem;">Stage 1 · 2 — fio 구성</h3>
-      <ul style="font-size: 0.93rem;">
-        <li><strong>4 KB 순차 쓰기</strong>, <code>libaio</code>, <code>iodepth=256</code></li>
-        <li>raw 경로는 direct, 파일시스템 경로는 buffered</li>
-        <li>실행당 <strong>2시간</strong>, 사전에 <strong>128 KB 순차 쓰기로 프리컨디셔닝</strong></li>
-        <li>수명 차이는 <strong>영역 크기</strong>로 만듭니다. hot cgroup은 좁은 영역을 계속 덮어쓰고(빨리 재활용), cold cgroup은 넓은 영역을 훑습니다(늦게 재활용).</li>
-        <li><strong>Stage 1:</strong> hot 5% / cold 95%의 2테넌트</li>
-        <li><strong>Stage 2:</strong> cgroup 14개 — hot 7개(1%) / cold 7개(13%)</li>
-      </ul>
-    </div>
-    <div class="card" style="padding: 1.1rem 1.3rem;">
-      <h3 style="font-size: 1.1rem;">파일시스템 튜닝</h3>
-      <ul style="font-size: 0.93rem;">
-        <li><strong>ext4:</strong> <code>^flex_bg</code>, <code>commit=1</code>, 예약 블록 없음</li>
-        <li><strong>xfs:</strong> 10 MB 로그, <code>maxpct=100</code>, <code>wsync</code></li>
-        <li>성능을 뽑으려는 게 아니라, <strong>저널링을 계속 돌게 해서</strong> 메타데이터 경로가 실제로 일하게 만들려는 설정입니다.</li>
-      </ul>
+  <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
+    <h3 style="color: var(--accent-amber);">논문이 답하지 않는 질문</h3>
+    <ul style="font-size: 0.93rem;">
+      <li><strong>"컨테이너가 재시작되면 cgroup이 바뀌는데 매핑은요?"</strong><br>
+        논문 범위 밖입니다. 오케스트레이터가 다시 걸어 줘야 하고, <strong>운영 쪽에서 아직 안 풀린 문제</strong>입니다.</li>
+      <li><strong>"왜 하필 {R,M}/{P,K}가 {R,K}/{P,M}보다 나쁜가요?"</strong><br>
+        1.80과 1.58이라는 차이는 봤는데, <strong>펌웨어 안을 못 봐서 원인은 못 밝혔다</strong>고 논문에 그대로 적혀 있습니다.</li>
+      <li><strong>"다른 벤더 SSD에서도 같나요?"</strong><br>
+        장비 한 대, 펌웨어 하나에서 나온 결과입니다. <strong>다른 데서도 그런지는 확인 안 했습니다.</strong> 실제로 WARP를 보면 벤더별 편차가 꽤 큽니다.</li>
+      <li><strong>"수년 단위 마모에서도 유지되나요?"</strong><br>
+        제일 긴 실험이 12시간입니다. 논문에도 한계로 적혀 있습니다.</li>
+      <li><strong>"읽기가 섞이면요?"</strong><br>
+        평가 워크로드가 전부 쓰기 위주입니다. WAF는 쓰기 수명에만 좌우되니 일부러 그렇게 잡은 건데,
+        <strong>읽기 쪽은 아예 안 쟀습니다.</strong></li>
+    </ul>
+    <div style="margin-top: 0.7rem; padding: 0.7rem 0.85rem; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 4px; font-size: 0.9rem;">
+      모르는 건 그냥 모른다고 답하는 게 낫습니다. 논문에 없는 답을 지어내는 것보다 훨씬.
     </div>
   </div>
 </div>
 <div class="notes">
-  "수명 차이를 영역 크기로 만든다"가 이 실험 설계의 핵심이다. 합성 워크로드로 수명 차이를 만드는 깔끔한 방법이라 기억해 둘 만하다.
+  오른쪽은 변명하려고 만든 게 아니다. 모르는 건 모른다고 하면 된다.
 </div>

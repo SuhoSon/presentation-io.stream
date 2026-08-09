@@ -669,10 +669,18 @@
       </div>
       <div class="slide-body">
         <div class="highlight-box">
-          <div class="highlight-title">이 논문의 결론 한 줄</div>
-          <p style="font-size: 1.15rem; line-height: 1.7;">
-            WAF를 결정하는 건 <strong>스트림 개수가 아니라, 묶음이 수명에 맞느냐(coherence)</strong>다.
-            잘 맞게 묶으면 스트림 절반으로 완전 격리와 비슷하게 나오고, 잘못 묶으면 FDP를 아예 안 쓴 것보다 나빠질 수 있다.
+          <div class="highlight-title">이 논문의 주장, 그리고 근거</div>
+          <p style="font-size: 1.05rem; line-height: 1.65;">
+            <strong style="color: var(--accent-green);">주장 —</strong> 배치 스트림을 정하는 주체는 애플리케이션이 아니라
+            <strong>운영자여야 한다(operator-controlled).</strong>
+            한 노드에 누가 같이 떠 있고 누가 오래 사는 데이터를 만드는지 아는 쪽은 운영자이고,
+            그 단위는 이미 <strong>cgroup</strong>으로 존재한다.
+          </p>
+          <p style="font-size: 1.05rem; line-height: 1.65; margin-top: 0.6rem;">
+            <strong style="color: var(--accent-blue);">근거 —</strong> WAF를 결정하는 건
+            <strong>스트림 개수가 아니라 묶음이 수명에 맞느냐(coherence)</strong>다.
+            잘 맞게 묶으면 스트림 절반으로 완전 격리와 비슷하고, 잘못 묶으면 FDP를 아예 안 쓴 것보다 나쁘다.
+            <strong>그 정합성을 공급할 수 있는 사람이 운영자다.</strong>
           </p>
         </div>
         <div class="grid-3" style="margin-top: 0.4rem;">
@@ -1624,11 +1632,17 @@
       </div>
       <div class="slide-body">
         <div class="highlight-box">
-          <div class="highlight-title">처음에 띄웠던 문장으로 돌아오면</div>
-          <p style="font-size: 1.15rem; line-height: 1.7;">
-            WAF를 지배하는 것은 <strong>스트림의 개수가 아니라 매핑의 수명 정합성</strong>이다.
-            수명이 맞게 여러 cgroup을 하나로 묶으면 <strong>스트림을 절반만 쓰고도 cgroup마다 하나씩 준 것과 비슷</strong>했고,
-            수명이 안 맞게 묶으면 <strong>FDP를 아예 안 쓴 것보다 나빴다.</strong>
+          <div class="highlight-title">처음에 띄웠던 두 문장으로 돌아오면</div>
+          <p style="font-size: 1.05rem; line-height: 1.65;">
+            <strong style="color: var(--accent-green);">주장 —</strong> 배치는
+            <strong>운영자가 정하는 정책(operator-controlled)</strong>이어야 하고, 그 단위는 cgroup이다.
+            그래서 앱도 파일시스템도 고치지 않고, 이미 모든 데이터 쓰기에 붙어 다니는 라벨에 올라탔다.
+          </p>
+          <p style="font-size: 1.05rem; line-height: 1.65; margin-top: 0.6rem;">
+            <strong style="color: var(--accent-blue);">근거 —</strong> WAF를 지배한 것은
+            <strong>스트림 개수가 아니라 매핑의 수명 정합성</strong>이었다.
+            수명이 맞게 묶으면 <strong>스트림 절반으로 cgroup마다 하나씩 준 것과 비슷</strong>했고,
+            안 맞게 묶으면 <strong>FDP를 아예 안 쓴 것보다 나빴다.</strong>
           </p>
         </div>
         <div class="grid-3" style="margin-top: 0.3rem;">
@@ -1724,8 +1738,50 @@
     <!-- Slide 20 -->
     <div class="slide" id="slide-20">
       <div class="slide-header">
-        <h2>FDP 특성 ①: II와 PI — 그리고 유효 OP</h2>
-        <div class="slide-subtitle">GC가 살려낸 데이터를 어디에 다시 쓰느냐. 이 한 가지가 OP 예산과 맞물려 승부를 뒤집습니다</div>
+        <h2>FDP 특성 ①: Effective OP — 격리에는 값이 붙는다</h2>
+        <div class="slide-subtitle">RUH를 갈라 놓는 방식이 펌웨어 내부 가용 자원(Effective OP)에 미치는 영향</div>
+      </div>
+      <div class="slide-body grid-3">
+        <div class="card" style="display: flex; flex-direction: column;">
+          <h3 style="text-align:center; color: #94a3b8;">1. No-FDP (글로벌 풀)</h3>
+          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#60a5fa;">최대 (Max)</strong></span>
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#f87171;">수행 불가</strong></span>
+          </div>
+          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">전체 Free Block을 단일 풀로 운용하여 디바이스 내 OP 비율이 극대화되나, 서로 다른 수명의 I/O가 섞여 필연적으로 WAF가 상승합니다.</p>
+        </div>
+      
+        <div class="card" style="border-top: 3px solid #38bdf8; display: flex; flex-direction: column;">
+          <h3 style="text-align:center; color: #38bdf8;">2. FDP · II (Initially Isolated)</h3>
+          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#60a5fa;">사실상 통합 유지</strong></span>
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#fbbf24;">쓸 때만</strong></span>
+          </div>
+          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">호스트가 쓰는 순간에는 RUH별로 갈리지만 <strong>GC 복사본은 공용 GC-RUH 한 곳</strong>으로 모입니다. 여유 공간이 한 풀로 남아 OP가 빠듯할 때 버티는 대신, 시간이 지나면 RUH끼리 한 블록에 섞입니다.</p>
+        </div>
+      
+        <div class="card" style="border-top: 3px solid #c084fc; display: flex; flex-direction: column;">
+          <h3 style="text-align:center; color: #c084fc;">3. FDP · PI (Persistently Isolated)</h3>
+          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#f87171;">조각남 (Fragmented)</strong></span>
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#34d399;">끝까지 유지</strong></span>
+          </div>
+          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">각 RUH가 <strong>독립된 활성 블록(Open Block)과 개별 GC 풀</strong>을 요구합니다. 격리는 끝까지 가지만 통합 가용 OP가 조각나므로, OP가 부족하면 RUH마다 여유가 없어져 GC가 잦아집니다.</p>
+        </div>
+      </div>
+      <div class="takeaway" data-tone="amber">💡 Effective OP는 <em>스트림을 몇 개 세우느냐</em>와 <em>얼마나 강하게 가르느냐</em>로 함께 줄어든다. 격리는 공짜가 아니다.</div>
+      <div class="notes">
+        Part 1의 15번("세우기 vs 쓰기")과 같은 이야기의 장비 쪽 판본이다.
+        주의할 것: 여기서 "그러니 스트림은 무조건 적게 써라"로 넘어가면 안 된다.
+        Stage 2에서는 모든 조건이 똑같이 8개를 세워 두고도 결과가 갈렸다. 개수는 OP 비용을 정하고, 매핑은 정합성을 정한다.
+        다음 장에서 그래서 II와 PI 중 뭐가 유리한지를 숫자로 본다.
+      </div>
+    </div>
+    <!-- Slide 21 -->
+    <div class="slide" id="slide-21">
+      <div class="slide-header">
+        <h2>FDP 특성 ②: 그래서 II와 PI 중 뭐가 유리한가</h2>
+        <div class="slide-subtitle">앞 장의 Effective OP 차이가 실제 WAF로 어떻게 나타나는지. OP 예산이 순위를 뒤집습니다</div>
       </div>
       <div class="slide-body">
         <div class="wafchart">
@@ -1776,44 +1832,35 @@
           <span style="color: var(--text-muted);">(WARP Fig. 18–19)</span>
         </div>
       
-        <div class="grid-3" style="margin-top: 0.1rem;">
-          <div class="card" style="padding: 0.9rem 1.1rem;">
-            <h3 style="font-size: 1.02rem; color: #94a3b8;">No-FDP — 통합 풀 하나</h3>
-            <p style="font-size: 0.88rem;">
-              Free block 전체를 <strong>단일 풀</strong>로 굴립니다.
-              <strong style="color: var(--accent-blue);">Effective OP는 최대</strong>지만,
-              수명이 다른 I/O가 섞이니 <strong style="color: var(--accent-red);">격리는 0</strong>입니다.
+        <div class="grid-2" style="margin-top: 0.1rem;">
+          <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(56, 189, 248, 0.5);">
+            <h3 style="font-size: 1.08rem; color: var(--accent-blue);">OP가 빠듯하면 II</h3>
+            <p style="font-size: 0.94rem;">
+              여유 공간이 <strong>공용 GC-RUH 한 곳에 모여</strong> 있으니, GC 부담을 스트림들끼리 나눠서 흡수합니다.
+              OP 3%에서 <strong>2.92 대 3.81</strong>, 5%에서 <strong>2.19 대 2.37</strong>로 II가 앞섭니다.
+              호스트 분류가 엉성하거나 워크로드가 뒤섞일 때도 <strong style="color: var(--accent-blue);">II가 더 잘 버팁니다.</strong>
             </p>
           </div>
-          <div class="card" style="padding: 0.9rem 1.1rem; border-color: rgba(56, 189, 248, 0.5);">
-            <h3 style="font-size: 1.02rem; color: var(--accent-blue);">II — 쓸 때만 갈라 둠</h3>
-            <p style="font-size: 0.88rem;">
-              호스트가 쓰는 순간에는 RUH별로 나뉘지만, GC 복사본은 <strong>공용 GC-RUH 한 곳</strong>으로 모입니다.
-              여유 공간이 사실상 한 풀로 남아 <strong style="color: var(--accent-blue);">OP가 빠듯할 때 버팁니다.</strong>
-              대신 시간이 지나면 RUH끼리 한 블록에 섞입니다.
-            </p>
-          </div>
-          <div class="card" style="padding: 0.9rem 1.1rem; border-color: rgba(192, 132, 252, 0.5);">
-            <h3 style="font-size: 1.02rem; color: var(--accent-purple);">PI — 복사본까지 제자리</h3>
-            <p style="font-size: 0.88rem;">
-              RUH마다 <strong>활성 블록과 GC 풀을 따로</strong> 들고 갑니다. 격리는 끝까지 유지되지만
-              <strong style="color: var(--accent-purple);">Effective OP가 RUH 개수만큼 조각납니다.</strong>
-              OP가 빠듯하면 RUH마다 숨 쉴 틈이 없어 GC가 잦아지고, 넉넉해야 비로소 더 낮은 하한에 닿습니다.
+          <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(192, 132, 252, 0.5);">
+            <h3 style="font-size: 1.08rem; color: var(--accent-purple);">OP가 넉넉하면 PI</h3>
+            <p style="font-size: 0.94rem;">
+              RUH마다 자기 여유 공간을 쥐고 있으니 <strong>스트림끼리 간섭이 없습니다.</strong>
+              OP 10%에서 <strong>1.18 대 1.34</strong>, 14%에서 <strong>1.06 대 1.09</strong>로 뒤집힙니다.
+              <strong style="color: var(--accent-purple);">PI의 하한이 더 낮지만</strong>, 거기 닿으려면 조각난 만큼의 OP를 먼저 내줘야 합니다.
             </p>
           </div>
         </div>
       </div>
-      <div class="takeaway" data-tone="purple">💡 격리를 더 철저히 하면 항상 좋아지는 게 아니다. 격리는 <em>여유 공간을 쪼개는 값</em>을 치르고 사는 것이다.</div>
+      <div class="takeaway" data-tone="purple">💡 "II가 낫다 / PI가 낫다"는 문장은 성립하지 않는다. <em>OP 예산이 얼마냐</em>를 먼저 말해야 한다.</div>
       <div class="notes">
-        이 장이 Part 1의 15번 슬라이드("세우기 vs 쓰기")와 정확히 같은 이야기의 장비 쪽 판본이다.
-        호스트에서는 "스트림을 몇 개 세우면 유효 OP가 줄어든다"였고, 장비에서는 "격리를 강하게 걸면 여유 공간이 쪼개진다"이다.
-        교차점은 RU 크기에 따라서도 움직이므로, "II가 낫다 / PI가 낫다"는 구성 없이는 성립하지 않는 문장이다.
+        교차점은 RU 크기에 따라서도 움직인다. RU 128MB에서는 더 낮은 OP에서 뒤집힌다.
+        그러니 "우리 장비는 II입니다"라는 말만으로는 좋은지 나쁜지 알 수 없고, OP가 얼마인지를 같이 물어야 한다.
       </div>
     </div>
-    <!-- Slide 21 -->
-    <div class="slide" id="slide-21">
+    <!-- Slide 22 -->
+    <div class="slide" id="slide-22">
       <div class="slide-header">
-        <h2>FDP 특성 ②: FDP가 깨지는 세 가지 방식</h2>
+        <h2>FDP 특성 ③: FDP가 깨지는 세 가지 방식</h2>
         <div class="slide-subtitle">호스트가 태깅을 했는데도 이득이 사라지는 경우들 — 전부 실제 장비에서 관측된 것입니다</div>
       </div>
       <div class="slide-body">
@@ -1877,8 +1924,8 @@
         다음 장의 WARP는 정확히 이 "열어 볼 수 없다"를 푸는 도구다.
       </div>
     </div>
-    <!-- Slide 22 -->
-    <div class="slide" id="slide-22">
+    <!-- Slide 23 -->
+    <div class="slide" id="slide-23">
       <div class="slide-header">
         <h2>WARP — FDP SSD를 열어 보는 오픈 에뮬레이터</h2>
         <div class="slide-subtitle">Inho Song 외, <em>Characterizing and Emulating FDP SSDs with WARP</em>, USENIX FAST '26 (pp. 347–362)</div>
@@ -1930,8 +1977,8 @@
         링크: usenix.org/conference/fast26/presentation/song
       </div>
     </div>
-    <!-- Slide 23 -->
-    <div class="slide" id="slide-23">
+    <!-- Slide 24 -->
+    <div class="slide" id="slide-24">
       <div class="slide-header">
         <h2>두 논문을 겹쳐 놓으면 빈칸이 보입니다</h2>
         <div class="slide-subtitle">아래 세 가지는 두 논문 어디에도 없는, 우리가 붙여 본 조합입니다</div>
@@ -1996,8 +2043,8 @@
         ①은 FTL·디바이스 쪽, ②는 측정·모델링 쪽, ③은 커널 정책 쪽에 가깝다. 관심사에 따라 고르면 된다.
       </div>
     </div>
-    <!-- Slide 24 -->
-    <div class="slide" id="slide-24">
+    <!-- Slide 25 -->
+    <div class="slide" id="slide-25">
       <div class="slide-header">
         <h2>Q &amp; A</h2>
         <div class="slide-subtitle">들어주셔서 감사합니다</div>
@@ -2036,8 +2083,8 @@
         질문이 안 나오면 부록 A의 첫 질문("cgroup 안에 수명이 섞이면 어떻게 하나")을 내가 먼저 꺼내서 시작한다.
       </div>
     </div>
-    <!-- Slide 25 -->
-    <div class="slide" id="slide-25">
+    <!-- Slide 26 -->
+    <div class="slide" id="slide-26">
       <div class="slide-header">
         <h2>부록 A. 나올 만한 질문<span class="appendix-badge">APPENDIX</span></h2>
         <div class="slide-subtitle">논문이 답할 수 있는 질문과 못 하는 질문을 나눠 뒀습니다</div>
@@ -2083,8 +2130,8 @@
         오른쪽은 변명하려고 만든 게 아니다. 모르는 건 모른다고 하면 된다.
       </div>
     </div>
-    <!-- Slide 26 -->
-    <div class="slide" id="slide-26">
+    <!-- Slide 27 -->
+    <div class="slide" id="slide-27">
       <div class="slide-header">
         <h2>부록 B. 재현을 위한 설정<span class="appendix-badge">APPENDIX</span></h2>
         <div class="slide-subtitle">워크로드 구성과 단계별 파라미터입니다</div>
@@ -2145,7 +2192,7 @@
       <div class="progress-bar-container" style="width: 400px; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; margin: 0;">
         <div class="progress-bar-fill" id="progressBar" style="height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); width: 0%; transition: width 0.3s ease;"></div>
       </div>
-      <div class="slide-counter" id="slideCounter" style="font-family: var(--font-code); color: #94a3b8; font-size: 0.95rem; min-width: 60px; text-align: right;">1 / 26</div>
+      <div class="slide-counter" id="slideCounter" style="font-family: var(--font-code); color: #94a3b8; font-size: 0.95rem; min-width: 60px; text-align: right;">1 / 27</div>
     </div>
     <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">다음 (Right) →</button>
   </footer>

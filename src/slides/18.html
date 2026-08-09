@@ -4,11 +4,17 @@
 </div>
 <div class="slide-body">
   <div class="highlight-box">
-    <div class="highlight-title">처음에 띄웠던 문장으로 돌아오면</div>
-    <p style="font-size: 1.15rem; line-height: 1.7;">
-      WAF를 지배하는 것은 <strong>스트림의 개수가 아니라 매핑의 수명 정합성</strong>이다.
-      수명이 맞게 여러 cgroup을 하나로 묶으면 <strong>스트림을 절반만 쓰고도 cgroup마다 하나씩 준 것과 비슷</strong>했고,
-      수명이 안 맞게 묶으면 <strong>FDP를 아예 안 쓴 것보다 나빴다.</strong>
+    <div class="highlight-title">처음에 띄웠던 두 문장으로 돌아오면</div>
+    <p style="font-size: 1.05rem; line-height: 1.65;">
+      <strong style="color: var(--accent-green);">주장 —</strong> 배치는
+      <strong>운영자가 정하는 정책(operator-controlled)</strong>이어야 하고, 그 단위는 cgroup이다.
+      그래서 앱도 파일시스템도 고치지 않고, 이미 모든 데이터 쓰기에 붙어 다니는 라벨에 올라탔다.
+    </p>
+    <p style="font-size: 1.05rem; line-height: 1.65; margin-top: 0.6rem;">
+      <strong style="color: var(--accent-blue);">근거 —</strong> WAF를 지배한 것은
+      <strong>스트림 개수가 아니라 매핑의 수명 정합성</strong>이었다.
+      수명이 맞게 묶으면 <strong>스트림 절반으로 cgroup마다 하나씩 준 것과 비슷</strong>했고,
+      안 맞게 묶으면 <strong>FDP를 아예 안 쓴 것보다 나빴다.</strong>
     </p>
   </div>
   <div class="grid-3" style="margin-top: 0.3rem;">

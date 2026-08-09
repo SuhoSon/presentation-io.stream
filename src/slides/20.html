@@ -1,86 +1,39 @@
 <div class="slide-header">
-  <h2>FDP 특성 ①: II와 PI — 그리고 유효 OP</h2>
-  <div class="slide-subtitle">GC가 살려낸 데이터를 어디에 다시 쓰느냐. 이 한 가지가 OP 예산과 맞물려 승부를 뒤집습니다</div>
+  <h2>FDP 특성 ①: Effective OP — 격리에는 값이 붙는다</h2>
+  <div class="slide-subtitle">RUH를 갈라 놓는 방식이 펌웨어 내부 가용 자원(Effective OP)에 미치는 영향</div>
 </div>
-<div class="slide-body">
-  <div class="wafchart">
-    <div class="wafbar">
-      <span class="wafnum">2.92</span>
-      <div class="wafcol" data-tone="ok" style="height: 58%;"></div>
-      <span class="waflabel"><b>II</b><em>OP 3%</em></span>
+<div class="slide-body grid-3">
+  <div class="card" style="display: flex; flex-direction: column;">
+    <h3 style="text-align:center; color: #94a3b8;">1. No-FDP (글로벌 풀)</h3>
+    <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+      <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#60a5fa;">최대 (Max)</strong></span>
+      <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#f87171;">수행 불가</strong></span>
     </div>
-    <div class="wafbar">
-      <span class="wafnum">3.81</span>
-      <div class="wafcol" data-tone="purple" style="height: 85%;"></div>
-      <span class="waflabel"><b>PI</b><em>OP 3%</em></span>
-    </div>
-    <div class="wafbar">
-      <span class="wafnum">2.19</span>
-      <div class="wafcol" data-tone="ok" style="height: 36%;"></div>
-      <span class="waflabel"><b>II</b><em>OP 5%</em></span>
-    </div>
-    <div class="wafbar">
-      <span class="wafnum">2.37</span>
-      <div class="wafcol" data-tone="purple" style="height: 42%;"></div>
-      <span class="waflabel"><b>PI</b><em>OP 5%</em></span>
-    </div>
-    <div class="wafbar">
-      <span class="wafnum">1.34</span>
-      <div class="wafcol" data-tone="ok" style="height: 10%;"></div>
-      <span class="waflabel"><b>II</b><em>OP 10%</em></span>
-    </div>
-    <div class="wafbar">
-      <span class="wafnum">1.18</span>
-      <div class="wafcol" data-tone="purple" style="height: 5%;"></div>
-      <span class="waflabel"><b>PI</b><em>OP 10%</em></span>
-    </div>
-    <div class="wafbar">
-      <span class="wafnum">1.09</span>
-      <div class="wafcol" data-tone="ok" style="height: 3%;"></div>
-      <span class="waflabel"><b>II</b><em>OP 14%</em></span>
-    </div>
-    <div class="wafbar">
-      <span class="wafnum">1.06</span>
-      <div class="wafcol" data-tone="purple" style="height: 2%;"></div>
-      <span class="waflabel"><b>PI</b><em>OP 14%</em></span>
-    </div>
-  </div>
-  <div class="axis-note">
-    80/20 워크로드, RU 256 MB, 장비 용량의 5배를 쓴 뒤 측정.
-    <strong style="color: var(--accent-amber);">OP 7~9% 부근에서 순위가 뒤집힙니다.</strong>
-    <span style="color: var(--text-muted);">(WARP Fig. 18–19)</span>
+    <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">전체 Free Block을 단일 풀로 운용하여 디바이스 내 OP 비율이 극대화되나, 서로 다른 수명의 I/O가 섞여 필연적으로 WAF가 상승합니다.</p>
   </div>
 
-  <div class="grid-3" style="margin-top: 0.1rem;">
-    <div class="card" style="padding: 0.9rem 1.1rem;">
-      <h3 style="font-size: 1.02rem; color: #94a3b8;">No-FDP — 통합 풀 하나</h3>
-      <p style="font-size: 0.88rem;">
-        Free block 전체를 <strong>단일 풀</strong>로 굴립니다.
-        <strong style="color: var(--accent-blue);">Effective OP는 최대</strong>지만,
-        수명이 다른 I/O가 섞이니 <strong style="color: var(--accent-red);">격리는 0</strong>입니다.
-      </p>
+  <div class="card" style="border-top: 3px solid #38bdf8; display: flex; flex-direction: column;">
+    <h3 style="text-align:center; color: #38bdf8;">2. FDP · II (Initially Isolated)</h3>
+    <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+      <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#60a5fa;">사실상 통합 유지</strong></span>
+      <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#fbbf24;">쓸 때만</strong></span>
     </div>
-    <div class="card" style="padding: 0.9rem 1.1rem; border-color: rgba(56, 189, 248, 0.5);">
-      <h3 style="font-size: 1.02rem; color: var(--accent-blue);">II — 쓸 때만 갈라 둠</h3>
-      <p style="font-size: 0.88rem;">
-        호스트가 쓰는 순간에는 RUH별로 나뉘지만, GC 복사본은 <strong>공용 GC-RUH 한 곳</strong>으로 모입니다.
-        여유 공간이 사실상 한 풀로 남아 <strong style="color: var(--accent-blue);">OP가 빠듯할 때 버팁니다.</strong>
-        대신 시간이 지나면 RUH끼리 한 블록에 섞입니다.
-      </p>
+    <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">호스트가 쓰는 순간에는 RUH별로 갈리지만 <strong>GC 복사본은 공용 GC-RUH 한 곳</strong>으로 모입니다. 여유 공간이 한 풀로 남아 OP가 빠듯할 때 버티는 대신, 시간이 지나면 RUH끼리 한 블록에 섞입니다.</p>
+  </div>
+
+  <div class="card" style="border-top: 3px solid #c084fc; display: flex; flex-direction: column;">
+    <h3 style="text-align:center; color: #c084fc;">3. FDP · PI (Persistently Isolated)</h3>
+    <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+      <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#f87171;">조각남 (Fragmented)</strong></span>
+      <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#34d399;">끝까지 유지</strong></span>
     </div>
-    <div class="card" style="padding: 0.9rem 1.1rem; border-color: rgba(192, 132, 252, 0.5);">
-      <h3 style="font-size: 1.02rem; color: var(--accent-purple);">PI — 복사본까지 제자리</h3>
-      <p style="font-size: 0.88rem;">
-        RUH마다 <strong>활성 블록과 GC 풀을 따로</strong> 들고 갑니다. 격리는 끝까지 유지되지만
-        <strong style="color: var(--accent-purple);">Effective OP가 RUH 개수만큼 조각납니다.</strong>
-        OP가 빠듯하면 RUH마다 숨 쉴 틈이 없어 GC가 잦아지고, 넉넉해야 비로소 더 낮은 하한에 닿습니다.
-      </p>
-    </div>
+    <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">각 RUH가 <strong>독립된 활성 블록(Open Block)과 개별 GC 풀</strong>을 요구합니다. 격리는 끝까지 가지만 통합 가용 OP가 조각나므로, OP가 부족하면 RUH마다 여유가 없어져 GC가 잦아집니다.</p>
   </div>
 </div>
-<div class="takeaway" data-tone="purple">💡 격리를 더 철저히 하면 항상 좋아지는 게 아니다. 격리는 <em>여유 공간을 쪼개는 값</em>을 치르고 사는 것이다.</div>
+<div class="takeaway" data-tone="amber">💡 Effective OP는 <em>스트림을 몇 개 세우느냐</em>와 <em>얼마나 강하게 가르느냐</em>로 함께 줄어든다. 격리는 공짜가 아니다.</div>
 <div class="notes">
-  이 장이 Part 1의 15번 슬라이드("세우기 vs 쓰기")와 정확히 같은 이야기의 장비 쪽 판본이다.
-  호스트에서는 "스트림을 몇 개 세우면 유효 OP가 줄어든다"였고, 장비에서는 "격리를 강하게 걸면 여유 공간이 쪼개진다"이다.
-  교차점은 RU 크기에 따라서도 움직이므로, "II가 낫다 / PI가 낫다"는 구성 없이는 성립하지 않는 문장이다.
+  Part 1의 15번("세우기 vs 쓰기")과 같은 이야기의 장비 쪽 판본이다.
+  주의할 것: 여기서 "그러니 스트림은 무조건 적게 써라"로 넘어가면 안 된다.
+  Stage 2에서는 모든 조건이 똑같이 8개를 세워 두고도 결과가 갈렸다. 개수는 OP 비용을 정하고, 매핑은 정합성을 정한다.
+  다음 장에서 그래서 II와 PI 중 뭐가 유리한지를 숫자로 본다.
 </div>
