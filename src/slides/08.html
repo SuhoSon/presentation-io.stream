@@ -66,7 +66,7 @@
             <li style="margin-bottom: 1rem;"><strong>I/O Hint 우선 (Bypass):</strong> 같은 cgroup에서 발생한 I/O라도, 이미 Stream ID가 명시적으로 지정된 I/O의 경우 cgroup 정책에 의해 덮어씌워지지 않고 기존 Stream ID를 유지합니다.</li>
             <li style="margin-bottom: 1rem;"><strong>기본 정책 (Default Fallback):</strong> 명시적으로 <code>io.stream</code>이 설정되지 않은 프로세스나 최상위 Root cgroup의 I/O는 모두 시스템 기본 스트림(RUH 0)으로 수렴합니다.</li>
             <li style="margin-top: 1.2rem; color: #f87171;"><strong>🌟 메타데이터 자동 격리 (Free Metadata Isolation):</strong><br>
-              <span style="color: #cbd5e1;">ext4의 <code>jbd2</code> 저널링과 같은 커널/파일시스템의 내부 메타데이터 쓰기는 커널 스레드에서 생성되며 기본 Root 컨텍스트로 처리됩니다. 따라서 <strong>별도의 복잡한 FS 튜닝 없이도 사용자 데이터(RUH 1, 2)와 시스템 메타데이터(RUH 0)가 물리적으로 완벽히 격리</strong>되는 이점을 얻게 됩니다.</span>
+              <span style="color: #cbd5e1;">ext4의 <code>jbd2</code> 저널링과 같은 메타데이터 쓰기는 기본 Root 컨텍스트로 처리되어 <strong>별도 튜닝 없이 사용자 데이터와 격리되는 부수적 효과(Free)</strong>를 얻습니다. 하지만 실험 결과(Metadata-only WAF 1.53), <strong>메타데이터 격리만으로는 WAF 개선 효과가 미미하며, 이득의 핵심 원천은 사용자 데이터의 철저한 수명 기반 격리</strong>입니다.</span>
             </li>
           </ul>
         </div>
