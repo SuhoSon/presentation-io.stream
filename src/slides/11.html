@@ -1,0 +1,20 @@
+<div class="slide-header">
+        <h2>결과 분석 2: 스트림 프로비저닝 규모와 분배 정확도의 상관관계</h2>
+        <div class="slide-subtitle">다중 활성 스트림(RUH) 환경에서의 Coherence(결합도) 의존성 검증</div>
+      </div>
+      <div class="slide-body grid-2">
+        <div class="chart-container" style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.2);">
+          <img src="stage2.png" alt="Evaluation Chart from Paper" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        </div>
+        <div class="card">
+          <h3>스트림 분배 정책 별 WAF 관찰</h3>
+          <ul>
+            <li><strong>Oblivious (무작위 균등 분배):</strong> 디바이스가 제공하는 최대 가용 스트림(7개)을 모두 프로비저닝하더라도, 워크로드 속성을 배제할 시 WAF는
+              2.36으로 현격히 악화됩니다.</li>
+            <li><strong>Coherent (데이터 결합도 중심):</strong> 전체 워크로드를 정확히 핫/콜드 속성으로 양분하여 <strong>최소한의 스트림(2개)</strong>으로만
+              운용했을 때 <strong>최적 성능(WAF 1.0)</strong>이 관찰되었습니다.</li>
+            <li><strong>결과 고찰:</strong> 향후 FDP 인프라 설계 시, 물리적 스트림 자원의 양적 확보보다 호스트 스페이스 차원의 정합성(Coherence) 높은 매핑 정책 도입이
+              최우선시되어야 함을 시사합니다.</li>
+          </ul>
+        </div>
+      </div>

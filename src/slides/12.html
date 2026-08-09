@@ -1,0 +1,19 @@
+<div class="slide-header">
+        <h2>결과 분석 3: 장기 상용 데이터베이스 벤치마크 (12h)</h2>
+        <div class="slide-subtitle">다중 테넌트(Multi-tenant) 클라우드 환경 내 지속 성능 방어력 입증</div>
+      </div>
+      <div class="slide-body grid-2">
+        <div class="chart-container" style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.2);">
+          <img src="stage3.png" alt="Evaluation Line Chart from Paper" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+        </div>
+        <div class="card">
+          <h3>상용 RDBMS / NoSQL 복합 운용 시나리오</h3>
+          <ul>
+            <li>코드 레벨의 FDP 수용이 불가능한 상용 솔루션(RocksDB, Postgres, Kafka, Mongo) 4종을 대상으로, cgroup 단위 격리를 통해 12시간 동안
+              Continuous I/O 벤치마크를 수행했습니다.</li>
+            <li>기존 혼재 방식(회색 점선)은 NAND 단편화 누적으로 인해 점진적으로 WAF 1.7에 수렴하였습니다.</li>
+            <li>반면, io.stream 기반의 격리 적용 시(녹색 실선) 초기 상태의 <strong>WAF 1.2 마진을 워크로드 종료 시점까지 일정하게 유지</strong>하여 높은 시스템 안정성을
+              확인하였습니다.</li>
+          </ul>
+        </div>
+      </div>

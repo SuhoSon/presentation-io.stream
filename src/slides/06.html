@@ -1,0 +1,19 @@
+<div class="slide-header">
+        <h2>왜 Container (cgroup)가 이상적인 FDP 제어 단위인가?</h2>
+        <div class="slide-subtitle">효율적인 데이터 격리를 위한 최적의 Granularity</div>
+      </div>
+      <div class="slide-body">
+        <div class="highlight-box">
+          <p style="font-size: 1.05rem; line-height: 1.7;">본 논문은 데이터센터 환경에서 <strong>컨테이너(cgroup) 단위</strong>가 데이터 수명 주기를 그룹화하고 FDP 스트림을 할당하기 위한 가장 이상적이고 실용적인 <strong>Granularity</strong>임을 제안합니다.</p>
+        </div>
+        <div class="grid-2" style="margin-top: 1.5rem;">
+          <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
+            <h3 style="margin-bottom: 1rem;">1. 모든 I/O Path에 내장된 컨텍스트</h3>
+            <p><code>cgroup (blkcg)</code> 식별자는 VFS부터 Page Cache, Block Layer에 이르기까지 <strong>모든 I/O 경로에 기본적으로 태깅되어 유지</strong>됩니다. 따라서 애플리케이션의 수정 없이도 정확한 I/O 출처 추적과 스트림 맵핑이 자연스럽게 이루어집니다.</p>
+          </div>
+          <div class="card" style="border-color: rgba(52, 211, 153, 0.4);">
+            <h3 style="margin-bottom: 1rem;">2. 운영자(Operator) 친화적 관리 단위</h3>
+            <p>데이터센터와 클라우드 환경의 시스템 운영자(Operator)는 이미 쿠버네티스(Kubernetes) 등 오케스트레이터를 통해 컨테이너(cgroup) 단위로 자원을 격리하고 관리하고 있습니다. 따라서 이를 FDP 스토리지 격리 기준으로 활용하는 것은 기존의 인프라 관리 체계와 완벽하게 부합합니다.</p>
+          </div>
+        </div>
+      </div>

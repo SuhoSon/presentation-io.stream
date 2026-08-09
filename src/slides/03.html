@@ -1,0 +1,41 @@
+<div class="slide-header">
+        <h2>해결책: NVMe FDP (Flexible Data Placement) 표준 도입</h2>
+        <div class="slide-subtitle">블랙박스 한계를 극복하는 Host-Directed Data Placement</div>
+      </div>
+      <div class="slide-body">
+        <div class="mermaid" style="padding: 1rem; margin-bottom: 1rem; border: none; background: transparent;">
+          graph LR
+          subgraph "Conventional SSD (블랙박스)"
+          direction LR
+          A[Host I/O] --> C[SSD Controller]
+          C --> B[(혼재된 Block)]
+          style B fill:#450a0a,stroke:#f87171
+          end
+          subgraph "FDP SSD (Host-Directed)"
+          direction LR
+          D[Host I/O + PID 1] --> F[FDP Controller]
+          E[Host I/O + PID 2] --> F
+          F -->|PID 1| G[(격리된 RU 1)]
+          F -->|PID 2| H[(격리된 RU 2)]
+          style G fill:#082f49,stroke:#38bdf8
+          style H fill:#064e3b,stroke:#34d399
+          end
+        </div>
+        <div class="grid-2">
+          <div class="card" style="border-color: rgba(248, 113, 113, 0.4);">
+            <h3>기존 블랙박스 모델의 한계</h3>
+            <ul>
+              <li>기존 SSD 컨트롤러는 호스트 워크로드의 의도나 수명을 인지하지 못한 채, 가용 블록에 데이터를 임의로 배치합니다.</li>
+              <li>이에 따라 <strong>런타임 중 데이터 혼재 현상이 필연적으로 발생하며, WAF 및 Latency Spike를 유발</strong>합니다.</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: rgba(52, 211, 153, 0.4);">
+            <h3>FDP의 핵심 원리</h3>
+            <ul>
+              <li>호스트(OS/App)가 I/O 요청 시 데이터 수명 특성을 나타내는 <strong>Placement Identifier (PID)</strong>를 함께 전달합니다.</li>
+              <li>디바이스는 수신된 PID를 기준으로 데이터를 <strong>별도의 물리적 블록 집합에 격리 저장</strong>하여, 블록 단위의 데이터 생명 주기를 동기화하고 GC를 최소화합니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>

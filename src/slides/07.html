@@ -1,0 +1,60 @@
+<div class="slide-header">
+        <h2>io.stream I/O 파이프라인 구현 구조</h2>
+        <div class="slide-subtitle">모든 I/O Path(Buffered & Direct)를 포괄하는 커널 스택 컨텍스트 보존 로직</div>
+      </div>
+      <div class="slide-body grid-2">
+        <div class="mermaid">
+          graph TD
+          subgraph User_Space ["User Space"]
+              APP["Application (cgroup-A/B)"]
+          end
+
+          subgraph Kernel_Space ["Kernel Space"]
+              VFS["VFS (Virtual File System)"]
+              PC["Page Cache"]
+              FS["File System (ext4/f2fs)"]
+              RAW["Raw Device (/dev/...)"]
+              BLK["Block Layer (blkcg 컨텍스트 보존/추출)"]
+              NVME["NVMe Driver (PID 맵핑 패치)"]
+          end
+          
+          subgraph Device ["Storage Device"]
+              SSD[("FDP SSD (RUH 할당)")]
+          end
+
+          APP -->|"syscall(write)"| VFS
+          APP -.->|"Bypass FS"| RAW
+          
+          VFS -.->|"Buffered I/O"| PC
+          VFS ===>|"Direct I/O"| FS
+          
+          PC -.->|"Writeback"| FS
+          
+          FS -->|"bio 제출"| BLK
+          RAW -->|"bio 제출"| BLK
+          
+          BLK -->|"Request 큐잉"| NVME
+          NVME ==>|"NVMe Command (with PID)"| SSD
+
+          style User_Space fill:transparent,stroke:#475569
+          style Kernel_Space fill:transparent,stroke:#475569
+          style Device fill:transparent,stroke:#475569
+          style APP fill:#1e293b,stroke:#818cf8
+          style VFS fill:#1e293b,stroke:#94a3b8
+          style PC fill:#1e293b,stroke:#94a3b8
+          style FS fill:#1e293b,stroke:#94a3b8
+          style RAW fill:#1e293b,stroke:#94a3b8
+          style BLK fill:#1e293b,stroke:#34d399,stroke-width:2px
+          style NVME fill:#1e293b,stroke:#34d399,stroke-width:2px
+          style SSD fill:#0f172a,stroke:#38bdf8,stroke-width:2px
+        </div>
+        <div class="card">
+          <h3>범용적 I/O 경로 지원 및 동작 시퀀스</h3>
+          <ol style="margin-left: 1.2rem; font-size: 0.95rem; line-height: 1.8;">
+            <li><strong>다양한 I/O 경로 지원:</strong> 애플리케이션은 <strong>Buffered I/O</strong>(Page Cache 경유), <strong>Direct I/O</strong>(FS 직접 접근), 혹은 FS를 우회하는 <strong>Raw Device</strong> 접근 중 어떤 방식을 사용하더라도 io.stream의 데이터 격리 혜택을 받습니다.</li>
+            <li style="margin-top: 0.4rem;"><strong>컨텍스트 유지 (Buffered I/O):</strong> 비동기 Writeback 동작 시, 커널은 해당 Page를 더럽힌(Dirty) 원본 <code>blkcg</code> 컨텍스트를 정확히 역추적하여 Block Layer에 인가합니다.</li>
+            <li style="margin-top: 0.4rem;"><strong>컨텍스트 획득 (Direct I/O & Raw):</strong> I/O를 발행하는 현재 프로세스 컨텍스트에서 즉시 <code>blkcg</code>를 획득하여 Block Layer로 전달합니다.</li>
+            <li style="margin-top: 0.4rem;"><strong>PID 변환 및 투명성:</strong> 상위의 어떤 경로를 거치든 모든 I/O는 <strong>Block Layer</strong>로 수렴합니다. 이곳에서 NVMe 커맨드 생성 시 cgroup ID를 디바이스 스트림 ID(RUH)로 매핑하므로 완벽한 호환성이 보장됩니다.</li>
+          </ol>
+        </div>
+      </div>

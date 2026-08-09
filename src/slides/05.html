@@ -1,0 +1,20 @@
+<div class="slide-header">
+        <h2>기존 FDP 도입 방식의 구조적 한계 및 실증 사례</h2>
+        <div class="slide-subtitle">애플리케이션 및 파일시스템 계층 기반 제어의 문제점</div>
+      </div>
+      <div class="slide-body grid-2">
+        <div class="card">
+          <h3>1. Application-Driven 모델</h3>
+          <ul>
+            <li style="margin-bottom: 0.8rem;"><strong>엔지니어링 비용:</strong> 상용 애플리케이션의 소스코드 직접 수정 필요.</li>
+            <li><strong>컨텍스트 유실:</strong> Buffered I/O를 거치며 커널 레벨에서 I/O 태그 정보가 유실됨.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>2. FS-Driven 모델 (WARP 연구 실증)</h3>
+          <ul>
+            <li style="margin-bottom: 0.8rem;"><strong>휴리스틱 예측의 불확실성:</strong> 파일 크기/확장자만으로는 실제 런타임 생명 주기를 정확히 추론할 수 없음.</li>
+            <li><strong>데이터 편향:</strong> F2FS에 제어를 일임하여 엔터프라이즈 워크로드를 구동한 결과, <strong>전체 데이터의 99%가 단일 WARM 스트림으로 집중</strong>되는 현상이 관찰됨(FAST '26). 즉, 다중 RUH 분리 효과가 완전히 상실됨.</li>
+          </ul>
+        </div>
+      </div>
