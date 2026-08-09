@@ -44,23 +44,23 @@
     <div class="card" style="padding: 1rem 1.2rem;">
       <h3 style="font-size: 1.08rem;">가운데 세 막대만 보십시오</h3>
       <p style="font-size: 0.95rem;">
-        <strong>스트림 개수가 똑같이 2개인데</strong> 결과는 <strong>1.80 / 1.58 / 1.27</strong>로 갈립니다.
-        달라진 것은 오직 <strong>누구를 누구와 묶었는가</strong>뿐입니다.
+        <strong>스트림 개수는 똑같이 2개인데</strong> 결과는 <strong>1.80 / 1.58 / 1.27</strong>로 갈립니다.
+        달라진 건 <strong>누구를 누구랑 묶었느냐</strong>뿐입니다.
         수명이 섞인 한 쌍은 <strong style="color: var(--accent-red);">FDP-default(1.70)보다도 나쁩니다.</strong>
       </p>
     </div>
     <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(52, 211, 153, 0.5);">
       <h3 style="font-size: 1.08rem; color: var(--accent-green);">절반의 스트림으로 같은 값</h3>
       <p style="font-size: 0.95rem;">
-        수명이 맞는 <strong>2개 묶음이 1.27</strong>, 앱마다 하나씩 준 <strong>4개가 1.23</strong>.
-        <strong>스트림을 절반만 쓰고도 사실상 같은 결과</strong>입니다.
+        수명이 맞게 묶은 <strong>2개짜리가 1.27</strong>, 앱마다 하나씩 준 <strong>4개짜리가 1.23</strong>.
+        <strong>스트림을 절반만 쓰고도 사실상 같은 결과</strong입니다.
         넷을 한 스트림에 모은 경우가 FDP-default와 똑같이 1.70인 이유는,
-        그렇게 하면 <strong>jbd2 저널만 격리될 뿐 사용자 데이터는 여전히 같은 회수 단위를 공유</strong>하기 때문입니다.
+        그렇게 묶으면 <strong>jbd2 저널만 따로 빠질 뿐, 사용자 데이터는 여전히 한 회수 단위를 같이 쓰기</strong> 때문입니다.
       </p>
     </div>
   </div>
 </div>
 <div class="takeaway" data-tone="green">💡 앱마다 스트림을 낭비할 필요가 없다. 수명이 같으면 묶어도 되고, 다르면 묶는 순간 손해다.</div>
 <div class="notes">
-  RocksDB는 direct I/O를 끄고 돌렸다. flush와 컴팩션 쓰기가 페이지 캐시를 거친다는 뜻이고, 그래서 이 실험이 buffered 경로 주장을 실제로 검증한다.
+  RocksDB는 direct I/O를 끄고 돌렸다. flush와 컴팩션 쓰기가 페이지 캐시를 거친다는 뜻이고, 그래서 이 실험이 buffered 경로 주장까지 실제로 검증한다.
 </div>

@@ -1,20 +1,20 @@
 <div class="slide-header">
   <h2>여기서 시작할 수 있는 연구 주제</h2>
-  <div class="slide-subtitle">이 논문이 일부러 열어 둔 세 갈래 — 붙어볼 만한 곳들입니다</div>
+  <div class="slide-subtitle">논문이 일부러 열어 둔 세 갈래입니다. 바로 붙어볼 만합니다</div>
 </div>
 <div class="slide-body">
   <div class="grid-3">
     <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
       <h3 style="font-size: 1.1rem; color: var(--accent-green);">① 정합성을 학습하기</h3>
       <p style="font-size: 0.93rem;">
-        지금은 운영자가 손으로 매핑합니다. PCStream은 <strong>발행 컨텍스트로 쓰기를 묶어</strong> 같은 그룹이 함께 죽는다는 관찰을 썼습니다.
+        지금은 운영자가 손으로 매핑합니다. PCStream은 <strong>어느 코드에서 나온 쓰기냐로 묶어</strong> 같은 그룹이 같이 죽는다는 걸 이용했습니다.
       </p>
       <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-        io.stream에서는 <strong>쓰기가 이미 cgroup으로 태깅</strong>되어 있으므로 커널이 콜스택을 뒤져 그룹을 복원할 필요가 없습니다.
-        남는 일은 <strong>각 cgroup의 수명을 추정</strong>하는 것뿐입니다.
+        io.stream에서는 <strong>쓰기에 이미 cgroup이 붙어</strong> 있으니, 커널이 콜스택을 뒤져 그룹을 복원할 필요가 없습니다.
+        남은 일은 <strong>cgroup별 수명을 추정하는 것</strong> 하나입니다.
       </p>
       <p style="font-size: 0.93rem; margin-top: 0.6rem; color: var(--accent-green);">
-        <strong>안전 조건:</strong> 확신이 서기 전에는 추측하지 않고 기본으로 흘려보낼 것.
+        <strong>지킬 것:</strong> 확신 서기 전에는 추측하지 말고 기본 스트림으로 흘려보낼 것.
       </p>
     </div>
 
@@ -25,31 +25,30 @@
         io.stream은 <strong>테넌트 <em>사이</em></strong>를 가릅니다. 직교하는 두 축입니다.
       </p>
       <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-        앞서 본 <strong>sentinel 규칙이 둘을 가산적으로</strong> 만듭니다. 하지만 둘 다 <strong>같은 좁은 물리 스트림 공간</strong>을 나눠 쓰므로 조율이 필요합니다.
+        앞에서 본 <strong>sentinel 규칙 덕분에 둘이 서로 더해집니다.</strong> 다만 둘 다 <strong>얼마 안 되는 물리 스트림</strong>을 나눠 써야 해서 조율이 필요합니다.
       </p>
       <p style="font-size: 0.93rem; margin-top: 0.6rem; color: var(--accent-purple);">
-        <strong>열린 질문:</strong> 커널은 운영자의 배정을 권위로 받아들여야 하나, 관측으로 보정해야 하나?
+        <strong>열린 질문:</strong> 커널은 운영자가 정한 값을 그대로 따라야 하나, 관측해서 고쳐야 하나?
       </p>
     </div>
 
     <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
       <h3 style="font-size: 1.1rem; color: var(--accent-amber);">③ 프로비저닝 공동 최적화</h3>
       <p style="font-size: 0.93rem;">
-        앞 장의 두 노브입니다. <strong>몇 개의 회수 유닛을 세울 것인가</strong>(적게 세워 OP를 지킬지, 많이 세워 수명에 여유를 줄지)와
-        <strong>어떻게 묶을 것인가</strong>는 서로 얽혀 있습니다.
+        앞 장의 두 노브입니다. <strong>회수 유닛을 몇 개 세울 것인가</strong>(적게 세워 OP를 지킬지, 많이 세워 수명에 여유를 줄지)와
+        <strong>어떻게 묶을 것인가</strong>가 서로 얽혀 있습니다.
       </p>
       <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-        io.stream의 <strong>logical/physical 분리</strong>가 이 문제를 비로소 손에 잡히는 형태로 만들었지만,
-        <strong style="color: var(--accent-amber);">둘을 같이 푸는 일은 통째로 남아 있습니다.</strong>
+        io.stream의 <strong>logical/physical 분리</strong> 덕에 이제 문제를 세울 수는 있게 됐는데,
+        <strong style="color: var(--accent-amber);">둘을 같이 푸는 건 통째로 남아 있습니다.</strong>
       </p>
     </div>
   </div>
 
   <div class="highlight-box" style="margin-top: 0.2rem; padding: 1rem 1.3rem;">
     <p style="font-size: 1.02rem;">
-      세 갈래 모두 <strong>커널 쪽 실험 환경이 이미 갖춰져 있다는 전제</strong>에서 출발합니다 —
-      cgroup 계층, blkcg 라벨, 그리고 300줄짜리 훅. 새 인터페이스를 설계하지 않고도 정책만 바꿔 실험할 수 있다는 점이
-      <strong>연구 주제로서의 진입 장벽을 크게 낮춥니다.</strong>
+      세 갈래 다 <strong>커널 쪽 판이 이미 깔려 있다는 게 전제</strong>입니다 — cgroup 계층, blkcg 라벨, 그리고 300줄짜리 훅.
+      새 인터페이스를 설계할 필요 없이 <strong>정책만 바꿔서 실험할 수 있다는 점</strong>에서, 시작하기 부담이 적은 주제들입니다.
     </p>
   </div>
 </div>

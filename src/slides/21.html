@@ -1,51 +1,64 @@
 <div class="slide-header">
-  <h2>부록 B. 재현을 위한 설정<span class="appendix-badge">APPENDIX</span></h2>
-  <div class="slide-subtitle">워크로드 구성과 각 단계의 파라미터</div>
+  <h2>FDP 특성 ②: FDP가 깨지는 세 가지 방식</h2>
+  <div class="slide-subtitle">호스트가 태깅을 했는데도 이득이 사라지는 경우들 — 전부 실제 장비에서 관측된 것입니다</div>
 </div>
-<div class="slide-body grid-2">
-  <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
-    <div class="card" style="padding: 1.1rem 1.3rem;">
-      <h3 style="font-size: 1.1rem;">Stage 3 — 무수정 컨테이너 4종</h3>
-      <table class="datatable" style="margin-top: 0.2rem;">
-        <thead>
-          <tr><th>앱</th><th>이미지</th><th>벤치마크</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>RocksDB</td><td><code style="font-size: 0.78rem;">alpine:3.20</code><br><span style="color: var(--text-muted); font-size: 0.82rem;">+ db_bench v11.5.0</span></td><td>fillrandom<br><span style="color: var(--text-muted); font-size: 0.82rem;">40억 키</span></td></tr>
-          <tr><td>PostgreSQL</td><td><code style="font-size: 0.78rem;">postgres:15</code></td><td>pgbench<br><span style="color: var(--text-muted); font-size: 0.82rem;">32 클라이언트 / 4 스레드</span></td></tr>
-          <tr><td>Kafka</td><td><code style="font-size: 0.78rem;">apache/kafka:4.2.1</code></td><td>producer-perf-test<br><span style="color: var(--text-muted); font-size: 0.82rem;">1 KB, 스로틀 없음</span></td></tr>
-          <tr><td>MongoDB</td><td><code style="font-size: 0.78rem;">mongo:6.0</code></td><td>bulk insertMany</td></tr>
-        </tbody>
-      </table>
-      <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.6rem;">
-        스톡 이미지를 그대로 사용하고, 배치는 오직 각 컨테이너의 cgroup을 스트림에 매핑하는 것으로만 지정합니다.
-        RocksDB는 direct I/O를 꺼서 flush와 컴팩션 쓰기가 페이지 캐시를 지나가게 했습니다.
+<div class="slide-body">
+  <div class="grid-3">
+    <div class="card" style="border-color: rgba(248, 113, 113, 0.45);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-red);">① 분류가 너무 거칠 때</h3>
+      <p style="font-size: 0.93rem;">
+        F2FS는 FDP 힌트를 지원합니다. 그런데 Filebench Fileserver를 돌려놓고 eBPF로 실제 힌트를 세어 보니,
+        <strong style="color: var(--accent-red);">사용자 데이터 쓰기의 99%가 WARM 하나</strong>로 몰려 있었습니다.
+      </p>
+      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+        결국 거의 모든 쓰기가 RUH 하나로 들어가고, WAF 곡선은 <strong>FDP를 안 켠 것과 겹칩니다.</strong>
+        노드와 메타데이터는 분리되지만 그것만으로는 부족했습니다.
+      </p>
+      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--accent-amber);">
+        <strong>"FDP를 지원한다"와 "FDP 덕을 본다"는 다른 말입니다.</strong>
+      </p>
+    </div>
+
+    <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-amber);">② Noisy RUH</h3>
+      <p style="font-size: 0.93rem;">
+        한 RUH에서 무효화가 몰아치면 <strong>다른 RUH의 증폭까지 같이 올라갑니다.</strong>
+        80/20 워크로드에서, 무효화만 하는 스트림이 GC를 재촉하자
+        트래픽 양은 그대로인 옆 RUH의 증폭 기여도가 <strong>전체의 26%</strong>까지 올라갔습니다.
+      </p>
+      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+        RUH는 <strong>이름만 격리</strong>일 뿐, GC 압력과 여유 공간은 결국 <strong>한 장비 안에서 공유</strong>됩니다.
+      </p>
+      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--text-muted);">
+        에뮬레이터에서 먼저 보였고, 상용 장비 두 대에서도 같은 패턴이 나왔습니다.
+      </p>
+    </div>
+
+    <div class="card" style="border-color: rgba(129, 140, 248, 0.45);">
+      <h3 style="font-size: 1.08rem; color: var(--accent-indigo);">③ Save Sequential</h3>
+      <p style="font-size: 0.93rem;">
+        순차 쓰기 스트림은 스스로 통째로 무효화되니 안전할 것 같습니다.
+        그런데 OP가 빠듯하고 GC 휴리스틱이 급하면, 장비가 <strong>곧 덮어써질 데이터를 미리 회수해</strong> 버립니다.
+      </p>
+      <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+        그 결과 전체 트래픽의 88%를 차지하던 <strong>순차 RUH가 오히려 WAF의 최대 기여자</strong>가 됐습니다.
+      </p>
+      <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--accent-indigo);">
+        <strong>시끄러운 쪽이 아니라 덩치 큰 쪽이 대가를 치릅니다.</strong>
       </p>
     </div>
   </div>
 
-  <div style="display: flex; flex-direction: column; gap: 0.9rem;">
-    <div class="card" style="padding: 1.1rem 1.3rem;">
-      <h3 style="font-size: 1.1rem;">Stage 1 · 2 — fio 구성</h3>
-      <ul style="font-size: 0.93rem;">
-        <li><strong>4 KB 순차 쓰기</strong>, <code>libaio</code>, <code>iodepth=256</code></li>
-        <li>raw 경로는 direct, 파일시스템 경로는 buffered</li>
-        <li>실행당 <strong>2시간</strong>, 사전에 <strong>128 KB 순차 쓰기로 프리컨디셔닝</strong></li>
-        <li>수명은 <strong>영역 크기</strong>로 만듭니다. hot cgroup은 좁은 영역을 계속 덮어쓰고(빠른 재활용), cold cgroup은 넓은 영역을 훑습니다(느린 재활용).</li>
-        <li><strong>Stage 1:</strong> hot 5% / cold 95%의 2테넌트</li>
-        <li><strong>Stage 2:</strong> cgroup 14개 — hot 7개(1%) / cold 7개(13%)</li>
-      </ul>
-    </div>
-    <div class="card" style="padding: 1.1rem 1.3rem;">
-      <h3 style="font-size: 1.1rem;">파일시스템 튜닝</h3>
-      <ul style="font-size: 0.93rem;">
-        <li><strong>ext4:</strong> <code>^flex_bg</code>, <code>commit=1</code>, 예약 블록 없음</li>
-        <li><strong>xfs:</strong> 10 MB 로그, <code>maxpct=100</code>, <code>wsync</code></li>
-        <li>목적은 성능 최적화가 아니라 <strong>저널링을 계속 활성 상태로 유지</strong>해 메타데이터 경로를 자극하는 것입니다.</li>
-      </ul>
-    </div>
+  <div class="highlight-box" style="margin-top: 0.2rem; padding: 1rem 1.3rem;">
+    <p style="font-size: 1.02rem;">
+      세 가지 모두 <strong>호스트가 수명을 제대로 갈랐는지와는 별개로</strong> 일어납니다.
+      즉 Part 1에서 본 <strong>매핑의 수명 정합성은 필요조건이지 충분조건이 아닙니다.</strong>
+      나머지 절반은 장비 안에 있고, 그 절반은 지금까지 아무도 열어 볼 수 없었습니다.
+    </p>
   </div>
 </div>
 <div class="notes">
-  "수명을 영역 크기로 만든다"는 아이디어가 이 실험 설계의 핵심 트릭이다. 합성 워크로드로 수명 차이를 만들어내는 깔끔한 방법.
+  ①은 "우리 파일시스템도 FDP 됩니다"를 곧이곧대로 믿으면 안 된다는 사례,
+  ②③은 호스트가 아무리 잘해도 장비가 망칠 수 있다는 사례다.
+  다음 장의 WARP는 정확히 이 "열어 볼 수 없다"를 푸는 도구다.
 </div>

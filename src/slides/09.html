@@ -32,17 +32,17 @@
   <div class="card">
     <h3>구현이 이렇게 작아지는 이유</h3>
     <ul style="font-size: 0.96rem;">
-      <li><strong>찍는 시점이 하나뿐:</strong> 어떤 경로로 왔든 모든 쓰기는 결국 블록 계층에서 bio가 됩니다.
-        bio가 blkcg와 묶인 <strong>직후에 조건부 필드 쓰기 한 번</strong>이 전부입니다.</li>
-      <li><strong>버퍼드 경로가 공짜로 따라옴:</strong> 공용 flusher가 테넌트의 더티 페이지를 내보낼 때 그 bio는
-        이미 테넌트의 blkcg를 달고 있으므로, <strong>테넌트가 직접 쓴 것처럼 배치</strong>됩니다.</li>
+      <li><strong>찍는 자리가 한 군데뿐입니다:</strong> 어느 경로로 왔든 모든 쓰기는 결국 블록 계층에서 bio가 됩니다.
+        bio에 blkcg가 붙은 <strong>바로 다음에 필드 하나를 조건부로 채우는 것</strong>이 전부입니다.</li>
+      <li><strong>버퍼드 경로가 덤으로 따라옵니다:</strong> 공용 flusher가 테넌트의 더티 페이지를 내보낼 때도
+        그 bio에는 이미 테넌트의 blkcg가 붙어 있어서, <strong>테넌트가 직접 쓴 것처럼 배치</strong>됩니다.</li>
       <li><strong>NVMe 드라이버는 그대로:</strong> write stream을 하드웨어 배치 식별자로 옮기는 일은
         <strong>원래 드라이버가 하던 일</strong>입니다. 변경은 거의 전부 block-cgroup 코드에 있습니다.</li>
-      <li><strong>하류에서 희석되지 않음:</strong> 분할된 bio는 부모의 스트림을 물려받고,
-        서로 다른 스트림을 가진 bio는 <strong>절대 병합되지 않습니다.</strong></li>
+      <li><strong>아래 단계에서 흐려지지 않습니다:</strong> 쪼개진 bio는 부모의 스트림을 물려받고,
+        스트림이 다른 bio끼리는 <strong>절대 합쳐지지 않습니다.</strong></li>
     </ul>
     <div style="margin-top: 0.8rem; padding: 0.8rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
-      새 fast-path 할당이 없습니다. 그래서 오버헤드가 사실상 측정되지 않습니다(뒤에서 수치로).
+      fast path에서 새로 메모리를 잡는 일이 없습니다. 그래서 오버헤드가 사실상 안 잡힙니다(뒤에서 숫자로).
     </div>
   </div>
 </div>

@@ -20,9 +20,9 @@
     </div>
     <div class="card" style="padding: 0.9rem 1.2rem; flex: none; border-color: rgba(52, 211, 153, 0.45);">
       <p style="font-size: 0.97rem;">
-        쓰기를 <strong>수행하는 스레드</strong>는 공용 kworker(root)지만,
-        <strong>bio에 찍히는 라벨</strong>은 페이지를 더럽힌 원래 cgroup입니다.
-        <strong style="color: var(--accent-green);">이 어긋남이 곧 기회입니다.</strong>
+        실제로 <strong>쓰기를 내보내는 스레드</strong>는 공용 kworker(root)입니다. 그런데
+        <strong>bio에 찍히는 라벨</strong>은 그 페이지를 더럽힌 원래 cgroup입니다.
+        <strong style="color: var(--accent-green);">이 어긋남이 바로 기회입니다.</strong>
       </p>
     </div>
   </div>
@@ -39,15 +39,15 @@
       </p>
     </div>
     <div class="card" style="border-color: rgba(248, 113, 113, 0.4);">
-      <h3>반면 per-I/O 태깅이 닿는 범위</h3>
+      <h3>반면 per-I/O 태깅은 여기까지만 닿습니다</h3>
       <p style="font-size: 0.97rem;">
-        오늘 스트림을 지정하는 유일한 방법은 <code>io_uring</code> 쓰기 속성이고, 이는
-        <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
-        버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 건드리지 않은 채로 두므로
-        <strong style="color: var(--accent-red);">그대로 디바이스 기본값으로 떨어집니다.</strong>
+        지금 스트림을 지정할 수 있는 유일한 방법은 <code>io_uring</code>의 쓰기 속성인데,
+        이건 <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
+        버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 아예 건드리지 않고 지나가므로
+        <strong style="color: var(--accent-red);">전부 디바이스 기본값으로 떨어집니다.</strong>
       </p>
       <p style="font-size: 0.97rem; margin-top: 0.7rem;">
-        즉 <strong>blkcg 라벨은 per-I/O 태깅이 닿지 못하는 바로 그 경로에 이미 존재</strong>합니다.
+        정리하면, <strong>per-I/O 태깅이 못 가는 바로 그 경로에 blkcg 라벨은 이미 가 있습니다.</strong>
       </p>
     </div>
   </div>

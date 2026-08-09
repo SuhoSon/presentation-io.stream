@@ -38,31 +38,31 @@
     <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(248, 113, 113, 0.5);">
       <h3 style="font-size: 1.08rem; color: var(--accent-red);">가진 걸 다 쓴 쪽이 꼴찌였습니다</h3>
       <p style="font-size: 0.94rem;">
-        <strong>Oblivious</strong>는 cgroup id를 스트림에 <strong>해시</strong>합니다. 무작위가 아니라 균등하게 잘 퍼뜨리는데,
-        <strong>수명을 모릅니다.</strong> 7개를 전부 쓰고도 <strong style="color: var(--accent-red);">2.36</strong> —
+        <strong>Oblivious</strong>는 cgroup id를 <strong>해시해서</strong> 스트림에 뿌립니다. 아무렇게나가 아니라 아주 고르게 퍼뜨리죠.
+        다만 <strong>수명을 모릅니다.</strong> 7개를 다 쓰고도 <strong style="color: var(--accent-red);">2.36</strong>,
         스트림을 하나도 안 쓴 FDP-default(1.62)보다 <strong>한참 나쁩니다.</strong>
       </p>
     </div>
     <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(52, 211, 153, 0.5);">
-      <h3 style="font-size: 1.08rem; color: var(--accent-green);">무엇을 pin 하느냐가 안전을 결정합니다</h3>
+      <h3 style="font-size: 1.08rem; color: var(--accent-green);">누구를 전용으로 빼 주느냐가 갈랐습니다</h3>
       <p style="font-size: 0.94rem;">
-        <strong>Fallback</strong>은 희소한 스트림을 <strong>수명이 긴 cold에 전용으로 주고</strong> hot을 기본 스트림으로 흘립니다. 결과는 <strong>1.07</strong>.
+        <strong>Fallback</strong>은 몇 개 없는 스트림을 <strong>수명이 긴 cold에 전용으로 주고</strong>, hot은 기본 스트림으로 흘려보냅니다. 결과는 <strong>1.07</strong>.
         GC를 막는 핵심이 <strong>느리게 재활용되는 cold의 격리</strong>이기 때문입니다.
       </p>
       <p style="font-size: 0.94rem; margin-top: 0.55rem;">
-        <strong>Blind</strong>는 cold를 부분적으로만 pin해서 <strong>1.30</strong> — 이득의 상당 부분을 되돌려줍니다.
+        <strong>Blind</strong>는 cold를 일부만 빼 줘서 <strong>1.30</strong> — 얻은 이득의 상당 부분을 다시 뱉어 냅니다.
       </p>
     </div>
     <div class="card" style="padding: 1rem 1.2rem;">
       <p style="font-size: 0.96rem;">
         <strong>Coherent는 단 2개로 1.00에 도달합니다.</strong>
-        스트림을 <em>공유하는 것</em> 자체는 해롭지 않습니다.
-        해로운 것은 <strong>부주의한 충돌</strong>입니다.
+        스트림을 <em>나눠 쓰는 것</em> 자체는 해롭지 않습니다.
+        해로운 건 <strong>아무나 겹치게 두는 것</strong>입니다.
       </p>
     </div>
   </div>
 </div>
 <div class="takeaway" data-tone="amber">💡 자원을 더 준다고 좋아지지 않는다. 변수는 스트림의 <em>개수</em>가 아니라 <em>배정</em>이다.</div>
 <div class="notes">
-  스트림이 부족한 현장에서 쓸 수 있는 유일한 규칙: 남는 스트림이 하나뿐이라면 cold에 줘라.
+  스트림이 모자란 현장에서 쓸 수 있는 규칙 하나: 여유 스트림이 딱 하나라면 cold에 줘라.
 </div>

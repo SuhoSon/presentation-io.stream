@@ -559,6 +559,7 @@
     .wafcol[data-tone="good"] { background: rgba(52, 211, 153, 0.55); border-color: var(--accent-green); }
     .wafcol[data-tone="ok"] { background: rgba(56, 189, 248, 0.45); border-color: var(--accent-blue); }
     .wafcol[data-tone="bad"] { background: rgba(248, 113, 113, 0.5); border-color: var(--accent-red); }
+    .wafcol[data-tone="purple"] { background: rgba(192, 132, 252, 0.45); border-color: var(--accent-purple); }
 
     .waflabel {
       font-size: 0.82rem;
@@ -668,10 +669,10 @@
       </div>
       <div class="slide-body">
         <div class="highlight-box">
-          <div class="highlight-title">이 논문이 남기는 한 문장</div>
+          <div class="highlight-title">이 논문의 결론 한 줄</div>
           <p style="font-size: 1.15rem; line-height: 1.7;">
-            WAF를 지배하는 것은 <strong>스트림의 개수가 아니라 매핑의 수명 정합성(coherence)</strong>이다.
-            정합적인 매핑은 절반의 스트림으로 완전 격리에 필적하고, 비정합적인 매핑은 FDP를 아예 안 쓴 것보다 나쁠 수 있다.
+            WAF를 결정하는 건 <strong>스트림 개수가 아니라, 묶음이 수명에 맞느냐(coherence)</strong>다.
+            잘 맞게 묶으면 스트림 절반으로 완전 격리와 비슷하게 나오고, 잘못 묶으면 FDP를 아예 안 쓴 것보다 나빠질 수 있다.
           </p>
         </div>
         <div class="grid-3" style="margin-top: 0.4rem;">
@@ -703,7 +704,7 @@
     <div class="slide" id="slide-2">
       <div class="slide-header">
         <h2>오늘 답할 세 가지 질문</h2>
-        <div class="slide-subtitle">FDP를 처음 듣는 사람이 순서대로 품게 되는 의심들</div>
+        <div class="slide-subtitle">FDP를 처음 들으면 순서대로 떠오르는 의문들입니다</div>
       </div>
       <div class="slide-body">
         <div class="grid-3">
@@ -726,15 +727,19 @@
         <div class="highlight-box" style="margin-top: 0.2rem;">
           <div class="highlight-title">진행 순서</div>
           <p style="font-size: 1.02rem;">
-            <strong>배경</strong> (WAF와 FDP, 그리고 cgroup이 왜 등장하는가) →
-            <strong>설계</strong> (인터페이스·경로·스트림 부족 대응) →
-            <strong>평가</strong> (위 세 질문) →
-            <strong>한계와 열린 질문</strong>
+            <strong>PART 1 · 논문</strong> — 배경(WAF와 FDP, cgroup이 왜 나오는가) →
+            설계(인터페이스·경로·스트림이 모자랄 때) →
+            평가(위 세 질문) → 한계와 열린 질문
+          </p>
+          <p style="font-size: 1.02rem; margin-top: 0.5rem; color: var(--accent-purple);">
+            <strong>PART 2 · FDP라는 판</strong> — 논문 밖으로 나가서, 장비 쪽에서 벌어지는 일을 봅니다.
+            II와 PI, 유효 OP, FDP가 깨지는 방식, 그리고 <strong>WARP</strong>(FAST '26)라는 오픈 에뮬레이터까지.
           </p>
         </div>
       </div>
       <div class="notes">
         이 세 질문을 칠판처럼 남겨두고, 평가 파트에서 하나씩 지워 나간다고 예고한다.
+        Part 2는 논문 소개가 아니라 "이 분야에서 뭘 해볼 수 있나"를 보여주는 자리라고 미리 말해 둔다.
       </div>
     </div>
     <!-- Slide 3 -->
@@ -796,12 +801,12 @@
         <div class="card">
           <h3>WAF가 비싼 이유</h3>
           <ul>
-            <li><strong>비대칭 구조:</strong> 쓰기는 Page 단위, 지우기는 Block 단위입니다. 덮어쓰기는 일부만 무효화할 뿐 그 자리를 되돌려주지 못합니다.</li>
-            <li><strong>GC 비용:</strong> 수명이 다른 데이터가 한 지우기 단위에 섞이면, 회수할 때 살아남은 데이터를 다른 블록으로 복사해야 합니다. 이 복사가 곧 WAF입니다.</li>
-            <li><strong>대가는 둘 중 하나:</strong> WAF는 처리량을 깎고 꼬리 지연을 늘리며 수명을 태웁니다. 이를 감추려면 <strong>OP(Over-Provisioning)</strong>를 늘려야 하는데, 그건 <strong>사용자가 돈을 내고도 쓰지 못하는 용량</strong>입니다.</li>
+            <li><strong>단위가 어긋납니다:</strong> 쓰기는 페이지 단위인데 지우기는 블록 단위입니다. 덮어쓴다고 옛 페이지 자리가 바로 비워지지 않습니다. 무효 표시만 될 뿐입니다.</li>
+            <li><strong>그래서 GC가 돕니다:</strong> 수명이 다른 데이터가 한 지우기 단위에 섞여 있으면, 그 단위를 비우려고 아직 살아 있는 데이터를 다른 블록으로 옮겨야 합니다. 이 복사가 곧 WAF입니다.</li>
+            <li><strong>대가는 둘 중 하나입니다:</strong> WAF는 처리량을 깎고 꼬리 지연을 늘리고 수명을 갉아먹습니다. 이걸 감추려면 <strong>OP(over-provisioning)</strong>를 늘려야 하는데, OP는 <strong>돈 주고 사서 쓰지는 못하는 용량</strong>입니다.</li>
           </ul>
           <div style="margin-top: 1rem; padding: 0.9rem; background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; border-radius: 4px;">
-            <strong style="color: #38bdf8;">문제의 뿌리:</strong> 호스트는 어떤 데이터가 곧 죽을지 알지만, SSD 컨트롤러는 모릅니다.
+            <strong style="color: #38bdf8;">문제의 뿌리:</strong> 어떤 데이터가 곧 죽을지는 호스트가 압니다. 정작 배치를 정하는 SSD 컨트롤러는 모릅니다.
             <strong>아는 쪽에 결정권이 없다</strong>는 것이 핵심입니다.
           </div>
         </div>
@@ -849,8 +854,8 @@
           </div>
           <div class="card" style="padding: 1rem 1.2rem; flex: none;">
             <p style="font-size: 0.95rem;">
-              <strong style="color: var(--accent-green);">ZNS와 다른 점:</strong> FDP의 힌트는 <strong>권고(advisory)</strong>입니다.
-              FDP 드라이브는 여전히 평범한 블록 디바이스라서, 아무것도 안 해도 그냥 동작합니다. 그래서 점진적 도입이 가능합니다.
+              <strong style="color: var(--accent-green);">ZNS와 다른 점:</strong> FDP의 힌트는 <strong>권고일 뿐 강제가 아닙니다.</strong>
+              FDP 드라이브는 여전히 평범한 블록 디바이스라, 아무 힌트도 안 주면 그냥 예전처럼 동작합니다. 그래서 조금씩 도입해 볼 수 있습니다.
             </p>
           </div>
         </div>
@@ -858,10 +863,10 @@
         <div class="card">
           <h3>용어 네 개만 알면 됩니다</h3>
           <ul style="font-size: 0.97rem;">
-            <li><strong>RU (Reclaim Unit):</strong> 함께 지워지는 미디어 영역. <strong>이 단위 안의 수명을 맞추는 것이 전부</strong>입니다.</li>
-            <li><strong>RG (Reclaim Group):</strong> RU들의 묶음. 그룹 사이에는 미디어 병렬성이 확보됩니다.</li>
-            <li><strong>RUH (RU Handle):</strong> 컨트롤러가 지금 쓰고 있는 RU를 가리키는 포인터. <strong>개수가 곧 하드웨어 제약</strong>입니다.</li>
-            <li><strong>Write Stream:</strong> 호스트가 쓰기에 붙이는 식별자. NVMe 드라이버가 이를 배치 식별자(RG + RUH)로 옮깁니다.</li>
+            <li><strong>RU (Reclaim Unit):</strong> 한꺼번에 지워지는 미디어 덩어리. <strong>이 덩어리 안의 수명을 맞추는 것이 전부</strong>입니다.</li>
+            <li><strong>RG (Reclaim Group):</strong> RU들의 묶음. 그룹끼리는 미디어를 병렬로 쓸 수 있습니다.</li>
+            <li><strong>RUH (RU Handle):</strong> 컨트롤러가 지금 쓰고 있는 RU를 가리키는 포인터. <strong>이 개수가 곧 하드웨어 제약</strong>입니다.</li>
+            <li><strong>Write Stream:</strong> 호스트가 쓰기에 붙이는 번호. NVMe 드라이버가 이걸 배치 식별자(RG + RUH)로 바꿔 줍니다.</li>
           </ul>
           <div style="margin-top: 0.9rem; padding: 0.85rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
             수명이 같은 데이터가 한 RU를 채우면 그 RU는 <strong>통째로 무효화</strong>됩니다.
@@ -898,9 +903,9 @@
           </div>
           <div class="card" style="padding: 0.9rem 1.2rem; flex: none; border-color: rgba(52, 211, 153, 0.45);">
             <p style="font-size: 0.97rem;">
-              쓰기를 <strong>수행하는 스레드</strong>는 공용 kworker(root)지만,
-              <strong>bio에 찍히는 라벨</strong>은 페이지를 더럽힌 원래 cgroup입니다.
-              <strong style="color: var(--accent-green);">이 어긋남이 곧 기회입니다.</strong>
+              실제로 <strong>쓰기를 내보내는 스레드</strong>는 공용 kworker(root)입니다. 그런데
+              <strong>bio에 찍히는 라벨</strong>은 그 페이지를 더럽힌 원래 cgroup입니다.
+              <strong style="color: var(--accent-green);">이 어긋남이 바로 기회입니다.</strong>
             </p>
           </div>
         </div>
@@ -917,15 +922,15 @@
             </p>
           </div>
           <div class="card" style="border-color: rgba(248, 113, 113, 0.4);">
-            <h3>반면 per-I/O 태깅이 닿는 범위</h3>
+            <h3>반면 per-I/O 태깅은 여기까지만 닿습니다</h3>
             <p style="font-size: 0.97rem;">
-              오늘 스트림을 지정하는 유일한 방법은 <code>io_uring</code> 쓰기 속성이고, 이는
-              <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
-              버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 건드리지 않은 채로 두므로
-              <strong style="color: var(--accent-red);">그대로 디바이스 기본값으로 떨어집니다.</strong>
+              지금 스트림을 지정할 수 있는 유일한 방법은 <code>io_uring</code>의 쓰기 속성인데,
+              이건 <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
+              버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 아예 건드리지 않고 지나가므로
+              <strong style="color: var(--accent-red);">전부 디바이스 기본값으로 떨어집니다.</strong>
             </p>
             <p style="font-size: 0.97rem; margin-top: 0.7rem;">
-              즉 <strong>blkcg 라벨은 per-I/O 태깅이 닿지 못하는 바로 그 경로에 이미 존재</strong>합니다.
+              정리하면, <strong>per-I/O 태깅이 못 가는 바로 그 경로에 blkcg 라벨은 이미 가 있습니다.</strong>
             </p>
           </div>
         </div>
@@ -957,38 +962,38 @@
               <td><strong>애플리케이션</strong></td>
               <td>CacheLib 등<br><span style="color: var(--text-muted); font-size: 0.85rem;">io_uring passthrough</span></td>
               <td style="color: var(--accent-red); font-weight: 700;">필요</td>
-              <td style="color: var(--accent-red); font-weight: 700;">미도달</td>
-              <td>상용 앱의 I/O 엔진을 직접 고쳐야 합니다. 대부분의 배포 환경에는 적용할 수 없습니다.</td>
+              <td style="color: var(--accent-red); font-weight: 700;">안 닿음</td>
+              <td>앱의 I/O 엔진을 직접 뜯어고쳐야 합니다. 남이 만든 바이너리를 돌리는 대부분의 현장에서는 쓸 수 없습니다.</td>
             </tr>
             <tr class="group-start">
               <td><strong>파일시스템</strong></td>
               <td>FStream <span style="color: var(--text-muted); font-size: 0.85rem;">(파일 속성)</span><br>F2FS <span style="color: var(--text-muted); font-size: 0.85rem;">(세그먼트 온도)</span></td>
               <td style="color: var(--accent-green); font-weight: 700;">불필요</td>
-              <td style="color: var(--accent-green); font-weight: 700;">도달</td>
-              <td>분류가 너무 거칠 수 있습니다. WARP의 측정에 따르면 F2FS는 Fileserver 사용자 데이터 쓰기의
-                <strong style="color: var(--accent-red);">99%를 단일 WARM RUH</strong>로 보냈습니다.</td>
+              <td style="color: var(--accent-green); font-weight: 700;">닿음</td>
+              <td>분류가 너무 거칠 수 있습니다. WARP가 재 보니 F2FS는 Fileserver의 사용자 데이터 쓰기 가운데
+                <strong style="color: var(--accent-red);">99%를 WARM 하나</strong>로 보내고 있었습니다.</td>
             </tr>
             <tr class="group-start">
               <td><strong>커널 추론</strong></td>
               <td>AutoStream <span style="color: var(--text-muted); font-size: 0.85rem;">(LBA 패턴)</span><br>PCStream <span style="color: var(--text-muted); font-size: 0.85rem;">(발행 컨텍스트)</span></td>
               <td style="color: var(--accent-green); font-weight: 700;">불필요</td>
-              <td style="color: var(--accent-green); font-weight: 700;">도달</td>
-              <td>인터페이스 변경은 피했지만, 그룹을 <strong>복원</strong>하려고 per-I/O 모니터링 비용을 지불합니다.
-                운영자가 테넌트 성격을 알아도 <strong>명시적으로 개입할 방법이 없습니다.</strong></td>
+              <td style="color: var(--accent-green); font-weight: 700;">닿음</td>
+              <td>인터페이스를 안 바꾼 대신, 이미 있는 그룹을 <strong>되짚어 알아내려고</strong> per-I/O 모니터링 비용을 냅니다.
+                운영자가 테넌트 성격을 알고 있어도 <strong>끼어들 방법이 없습니다.</strong></td>
             </tr>
             <tr class="group-start highlight-row">
               <td><strong>cgroup (운영자)</strong></td>
               <td><strong>io.stream</strong> <span style="font-size: 0.85rem;">(이 논문)</span></td>
               <td style="font-weight: 700;">불필요</td>
-              <td style="font-weight: 700;">도달</td>
-              <td>커널이 그룹을 추론할 필요가 없습니다. <strong>cgroup이 이미 그룹이고, 운영자가 이미 그 의도를 알고 있습니다.</strong></td>
+              <td style="font-weight: 700;">닿음</td>
+              <td>커널이 그룹을 알아낼 필요가 없습니다. <strong>cgroup이 이미 그룹이고, 그 의도는 운영자가 이미 알고 있습니다.</strong></td>
             </tr>
           </tbody>
         </table>
         <div class="highlight-box" style="margin-top: 0.3rem; padding: 1rem 1.3rem;">
           <p style="font-size: 1.02rem;">
-            AutoStream은 <strong>관측</strong>으로 의도를 추측하지만, cgroup에는 <strong>운영자의 의도가 이미 명시</strong>되어 있습니다.
-            그래서 이 논문의 과제는 "의도를 추론하는 법"이 아니라 <strong>"이미 있는 의도를 어떻게 전달할 것인가"</strong>가 됩니다.
+            AutoStream은 <strong>관측으로 의도를 추측</strong>합니다. 반면 cgroup에는 <strong>운영자의 의도가 이미 적혀</strong> 있습니다.
+            그래서 이 논문의 숙제는 "의도를 어떻게 알아낼까"가 아니라 <strong>"이미 있는 의도를 어떻게 전달할까"</strong>가 됩니다.
           </p>
         </div>
       </div>
@@ -1016,21 +1021,21 @@
             <h3>2. 운영자가 이미 쓰는 단위다</h3>
             <p style="font-size: 0.98rem;">
               오케스트레이터는 이미 독립 테넌트와 마이크로서비스를 <strong>서로 다른 cgroup에 배치</strong>합니다.
-              운영자는 어떤 테넌트가 자주 갈아엎히고 어떤 테넌트가 오래 남는 데이터를 만드는지 <strong>대략 알고 있습니다.</strong>
-              배치 정책을 <strong>기존 배포 경계에 그대로 붙일 수 있습니다.</strong>
+              어느 테넌트가 데이터를 자주 갈아엎고 어느 테넌트가 오래 남을 데이터를 만드는지, 운영자는 <strong>대충은 알고 있습니다.</strong>
+              그래서 배치 정책을 <strong>지금 쓰는 배포 경계에 그대로 얹을 수 있습니다.</strong>
             </p>
           </div>
         </div>
       
         <div class="card" style="border-color: rgba(251, 191, 36, 0.5); margin-top: 0.2rem;">
-          <h3 style="color: var(--accent-amber);">단, 논문은 이 점을 숨기지 않습니다</h3>
+          <h3 style="color: var(--accent-amber);">단, 논문도 이 약점을 먼저 인정합니다</h3>
           <p style="font-size: 1rem;">
-            cgroup은 <strong>소유·배포·자원 통제의 경계이지 데이터 수명의 경계가 아닙니다.</strong>
+            cgroup은 <strong>소유·배포·자원 통제를 나누는 선이지, 데이터 수명을 나누는 선이 아닙니다.</strong>
             단일 애플리케이션 cgroup 안에도 수명이 제각각인 데이터가 섞여 있습니다 — RocksDB의 WAL과 SSTable, 인덱스처럼요.
           </p>
           <p style="font-size: 1rem; margin-top: 0.7rem;">
             그럼에도 이 경계가 쓸모 있는 이유는, <strong>멀티테넌트 노드에서 가장 큰 수명 격차가 대체로 테넌트 <em>사이</em>에 생기기</strong> 때문입니다.
-            즉 cgroup은 완벽한 경계가 아니라 <strong style="color: var(--accent-amber);">운영자에게 보이는 매크로 수준의 근사치</strong>입니다.
+            즉 cgroup은 정확한 경계가 아니라, <strong style="color: var(--accent-amber);">운영자 눈에 보이는 굵직한 근사치</strong>입니다.
             앱 <em>내부</em>를 가르는 일은 per-I/O 태깅이 맡습니다(뒤에서 다시).
           </p>
         </div>
@@ -1050,7 +1055,7 @@
         <div class="mermaid">
           graph TD
           BIO["bio 생성 시점<br/>bi_write_stream = WRITE_STREAM_NONE (−1)"]
-          Q1{"앱이 스트림을<br/>표명했는가?"}
+          Q1{"앱이 스트림을<br/>지정했는가?"}
           A1["앱이 넣은 값을 사용<br/><b>0을 넣었어도 그 값이 이김</b>"]
           Q2{"cgroup에 유효<br/>스트림이 있는가?"}
           A2["<b>cgroup의 스트림을 찍음</b><br/>io.stream이 일하는 유일한 지점"]
@@ -1073,10 +1078,10 @@
             <h3 style="font-size: 1.12rem;">인터페이스</h3>
             <code style="display: block; padding: 0.5rem 0.7rem; color: var(--accent-green); font-size: 0.86rem; margin-bottom: 0.7rem;">echo "259:0 1" &gt; /sys/fs/cgroup/tenant_A/io.stream</code>
             <ul style="font-size: 0.94rem;">
-              <li><code>maj:min stream</code> 형식으로 <strong>디바이스별</strong>로 지정합니다.</li>
+              <li><code>maj:min stream</code> 형식으로 <strong>디바이스마다 따로</strong> 지정합니다.</li>
               <li>기본 상태는 <code>inherit</code> — <strong>부모의 유효 스트림을 상속</strong>합니다.</li>
               <li><code>0</code>을 직접 쓰면 <strong>디바이스 기본 배치를 강제</strong>합니다. 이는 <code>inherit</code>와 다른 동작입니다.</li>
-              <li>디바이스의 <code>max_write_streams</code>와 대조해 범위 밖 값은 거부합니다.</li>
+              <li>디바이스가 알려준 <code>max_write_streams</code>와 대조해서, 범위를 벗어난 값은 받지 않습니다.</li>
             </ul>
           </div>
           <div class="card" style="padding: 1.2rem; border-color: rgba(192, 132, 252, 0.45);">
@@ -1084,7 +1089,7 @@
             <p style="font-size: 0.94rem;">
               <strong>"아무 말도 안 함"(−1)</strong>과 <strong>"기본 배치를 달라고 말함"(0)</strong>은 다릅니다.
               이 구분 덕분에 앱이 명시한 값은 <strong>0이더라도 보존</strong>되고,
-              io.stream은 <strong style="color: var(--accent-purple);">앱이 비워둔 자리에만 값을 채우는 순수 가산적(additive) 기능</strong>이 됩니다.
+              io.stream은 <strong style="color: var(--accent-purple);">앱이 비워 둔 자리에만 값을 채우는, 더하기만 하는 기능</strong>이 됩니다.
             </p>
           </div>
         </div>
@@ -1130,17 +1135,17 @@
         <div class="card">
           <h3>구현이 이렇게 작아지는 이유</h3>
           <ul style="font-size: 0.96rem;">
-            <li><strong>찍는 시점이 하나뿐:</strong> 어떤 경로로 왔든 모든 쓰기는 결국 블록 계층에서 bio가 됩니다.
-              bio가 blkcg와 묶인 <strong>직후에 조건부 필드 쓰기 한 번</strong>이 전부입니다.</li>
-            <li><strong>버퍼드 경로가 공짜로 따라옴:</strong> 공용 flusher가 테넌트의 더티 페이지를 내보낼 때 그 bio는
-              이미 테넌트의 blkcg를 달고 있으므로, <strong>테넌트가 직접 쓴 것처럼 배치</strong>됩니다.</li>
+            <li><strong>찍는 자리가 한 군데뿐입니다:</strong> 어느 경로로 왔든 모든 쓰기는 결국 블록 계층에서 bio가 됩니다.
+              bio에 blkcg가 붙은 <strong>바로 다음에 필드 하나를 조건부로 채우는 것</strong>이 전부입니다.</li>
+            <li><strong>버퍼드 경로가 덤으로 따라옵니다:</strong> 공용 flusher가 테넌트의 더티 페이지를 내보낼 때도
+              그 bio에는 이미 테넌트의 blkcg가 붙어 있어서, <strong>테넌트가 직접 쓴 것처럼 배치</strong>됩니다.</li>
             <li><strong>NVMe 드라이버는 그대로:</strong> write stream을 하드웨어 배치 식별자로 옮기는 일은
               <strong>원래 드라이버가 하던 일</strong>입니다. 변경은 거의 전부 block-cgroup 코드에 있습니다.</li>
-            <li><strong>하류에서 희석되지 않음:</strong> 분할된 bio는 부모의 스트림을 물려받고,
-              서로 다른 스트림을 가진 bio는 <strong>절대 병합되지 않습니다.</strong></li>
+            <li><strong>아래 단계에서 흐려지지 않습니다:</strong> 쪼개진 bio는 부모의 스트림을 물려받고,
+              스트림이 다른 bio끼리는 <strong>절대 합쳐지지 않습니다.</strong></li>
           </ul>
           <div style="margin-top: 0.8rem; padding: 0.8rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
-            새 fast-path 할당이 없습니다. 그래서 오버헤드가 사실상 측정되지 않습니다(뒤에서 수치로).
+            fast path에서 새로 메모리를 잡는 일이 없습니다. 그래서 오버헤드가 사실상 안 잡힙니다(뒤에서 숫자로).
           </div>
         </div>
       </div>
@@ -1181,24 +1186,24 @@
       
         <div style="display: flex; flex-direction: column; gap: 1rem;">
           <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
-            <h3>넘칠 때의 기본 정책: 해시가 아니라 <em>fallback</em></h3>
+            <h3>넘칠 때의 기본 정책: 흩뿌리기가 아니라 <em>fallback</em></h3>
             <p style="font-size: 0.97rem;">
-              매핑되지 않았거나 자리가 없는 cgroup은 <strong>디바이스 기본으로 떨어질 뿐</strong>,
+              매핑이 없거나 자리가 모자란 cgroup은 <strong>디바이스 기본 스트림으로 갈 뿐</strong>,
               <strong style="color: var(--accent-green);">절대 다른 테넌트의 스트림으로 가지 않습니다.</strong>
             </p>
             <p style="font-size: 0.97rem; margin-top: 0.7rem;">
-              그래서 <strong>순진하게 도입해도 손해를 보지 않습니다.</strong>
-              모르면 건드리지 않는 쪽이 기본값입니다.
+              그래서 <strong>깊이 고민하지 않고 켜도 최소한 손해는 안 봅니다.</strong>
+              모르면 손대지 않는 쪽이 기본값이니까요.
             </p>
           </div>
           <div class="card" style="border-color: rgba(248, 113, 113, 0.45);">
             <h3 style="color: var(--accent-red);">해시로 흩뿌렸다면</h3>
             <p style="font-size: 0.97rem;">
-              수명을 무시한 병합은 <strong>hot과 cold를 한 회수 단위에 같이 앉힙니다.</strong>
+              수명을 따지지 않고 묶으면 <strong>hot과 cold가 한 회수 단위에 같이 앉습니다.</strong>
               그 결과는 다음 장에서 숫자로 나오는데, <strong style="color: var(--accent-red);">FDP를 아예 안 쓴 것보다 나쁩니다.</strong>
             </p>
             <p style="font-size: 0.97rem; margin-top: 0.7rem; color: var(--text-muted);">
-              스트림이 희소한 것은 미뤄둘 한계가 아니라, io.stream이 여는 <strong>정책 설계 공간</strong>입니다.
+              스트림이 모자란 건 나중으로 미룰 한계가 아니라, io.stream이 열어 놓은 <strong>정책 설계 공간</strong>입니다.
               커널은 어떤 정책이든 필요로 하는 cgroup 계층을 이미 알고 있습니다.
             </p>
           </div>
@@ -1232,18 +1237,18 @@
         </div>
       
         <div class="card" style="border-color: rgba(52, 211, 153, 0.4);">
-          <h3 style="color: var(--accent-green);">리뷰어가 물고 늘어질 구멍을 미리 막는 법</h3>
+          <h3 style="color: var(--accent-green);">리뷰어가 파고들 구멍을 미리 막는 법</h3>
           <ul style="font-size: 0.95rem;">
-            <li><strong>매 실행 전 <code>nvme format</code> 후 꽉 채웁니다.</strong><br>
-              <span style="color: var(--text-muted);">갓 포맷한 미디어에서는 WAF가 1 근처라 차이가 안 보입니다. 채워야 덮어쓰기가 즉시 GC를 돌립니다.</span></li>
+            <li><strong>실행할 때마다 <code>nvme format</code> 하고 용량을 꽉 채웁니다.</strong><br>
+              <span style="color: var(--text-muted);">갓 포맷한 상태에서는 WAF가 1 근처라 아무 차이도 안 보입니다. 꽉 채워야 덮어쓰기가 바로 GC를 부릅니다.</span></li>
             <li><strong><code>nodiscard</code>로 실행합니다.</strong><br>
-              <span style="color: var(--text-muted);">TRIM이 끼면 회수가 배치 덕인지 호스트 힌트 덕인지 구분할 수 없습니다.</span></li>
-            <li><strong>파일시스템을 일부러 몰아붙입니다.</strong> <span style="color: var(--text-muted);">(ext4 <code>commit=1</code> 등)
-              jbd2를 계속 돌게 해서 메타데이터 경로를 실제로 자극하려는 것입니다.</span></li>
+              <span style="color: var(--text-muted);">TRIM이 끼면 회수가 배치 덕분인지 호스트가 준 힌트 덕분인지 구분할 수 없습니다.</span></li>
+            <li><strong>파일시스템을 일부러 괴롭힙니다.</strong> <span style="color: var(--text-muted);">(ext4 <code>commit=1</code> 등)
+              jbd2를 쉬지 않고 돌려서 메타데이터 경로가 실제로 일하게 만들려는 것입니다.</span></li>
             <li><strong>WAF는 호스트가 아니라 디바이스가 잰 값입니다.</strong><br>
               <span style="color: var(--text-muted);">SMART 로그 02h와 OCP 로그 C0h의 델타를 분당 샘플링해, 정상상태 구간의 비율로 계산합니다.</span></li>
-            <li><strong>실행 간 편차와 실행 내 편차를 둘 다 적습니다.</strong><br>
-              <span style="color: var(--text-muted);">"GC 피크를 찍은 게 아니라 안정된 고원"임을 증명하는 장치입니다.</span></li>
+            <li><strong>실행끼리의 편차와 한 실행 안의 편차를 둘 다 적습니다.</strong><br>
+              <span style="color: var(--text-muted);">"운 좋게 GC 최고점을 찍은 게 아니라 안정된 구간"이라는 걸 보이기 위한 장치입니다.</span></li>
           </ul>
         </div>
       </div>
@@ -1291,15 +1296,15 @@
             <h3 style="font-size: 1.1rem; color: var(--accent-red);">켜기만 하면 아무 일도 없습니다</h3>
             <p style="font-size: 0.94rem;">raw에서 <strong>1.65 → 1.65</strong>, 변화 없음. 파일시스템에서는 오히려 <strong>1.50→1.53</strong>, <strong>1.57→1.61</strong>로 미세하게 나빠집니다.</p>
             <p style="font-size: 0.94rem; margin-top: 0.6rem;">
-              <strong>왜 나빠지나:</strong> 회수 유닛을 세워두면 내부 용량이 조금씩 예약되어 <strong>유효 OP가 줄어듭니다.</strong>
-              배치를 관리하지 않으면 <strong style="color: var(--accent-red);">그 대가만 치르고 이득은 못 받습니다.</strong>
+              <strong>왜 나빠지느냐:</strong> 회수 유닛을 세워 두면 내부 용량이 조금씩 예약되어 <strong>실제로 쓸 수 있는 OP가 줄어듭니다.</strong>
+              배치를 관리하지 않으면 <strong style="color: var(--accent-red);">그 값만 치르고 이득은 하나도 못 받습니다.</strong>
             </p>
           </div>
           <div class="card" style="padding: 1.1rem 1.3rem;">
             <h3 style="font-size: 1.1rem;">두 대조군이 증명하는 것</h3>
             <p style="font-size: 0.94rem;">
               No-FDP와 FDP-default가 raw에서 <strong>똑같이 1.65</strong>라는 사실은, 기본 스트림이 곧 기존 배치와 같음을 보여줍니다.
-              메타데이터만 떼어낸 <strong>Metadata-only도 1.53으로 제자리</strong>입니다.
+              메타데이터만 따로 뺀 <strong>Metadata-only도 1.53으로 제자리</strong>입니다.
               <strong>따라서 이득의 출처는 FDP 자체도, 메타데이터 격리도 아닌 <span style="color: var(--accent-green);">테넌트 데이터의 수명 분리</span>입니다.</strong>
             </p>
           </div>
@@ -1308,14 +1313,14 @@
               <strong style="color: var(--accent-green);">io.stream은 세 경로 모두 WAF 1.00.</strong>
               GC가 사라지면서 처리량은 raw 기준 <strong>1.8배</strong>,
               ext4 p99는 <strong>8.2 ms → 0.6 ms</strong>로 떨어집니다.
-              미디어 쓰기가 <strong>약 39% 줄어든</strong> 만큼 수명이 늘거나 OP를 깎을 여지가 생깁니다.
+              미디어에 실제로 쓰이는 양이 <strong>약 39% 줄었으니</strong>, 그만큼 수명이 늘거나 OP를 덜 잡아도 됩니다.
             </p>
           </div>
         </div>
       </div>
       <div class="takeaway" data-tone="blue">💡 FDP는 켜는 것이 아니라 쓰는 것이다. 그리고 "FDP-default"라는 베이스라인을 고른 것이 이 논문의 절반이다.</div>
       <div class="notes">
-        숫자를 다 읽지 말 것. WAF 열에서 1.65/1.53/1.61이 나란히 있고 io.stream 줄만 1.00이라는 점, 그리고 p99 열의 자릿수가 바뀐다는 점 두 가지만 짚는다.
+        숫자를 다 읽지 말 것. WAF 열에 1.65/1.53/1.61이 나란히 있고 io.stream 줄만 1.00이라는 것, 그리고 p99 열은 자릿수 자체가 바뀐다는 것. 이 둘만 짚는다.
       </div>
     </div>
     <!-- Slide 13 -->
@@ -1360,33 +1365,33 @@
           <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(248, 113, 113, 0.5);">
             <h3 style="font-size: 1.08rem; color: var(--accent-red);">가진 걸 다 쓴 쪽이 꼴찌였습니다</h3>
             <p style="font-size: 0.94rem;">
-              <strong>Oblivious</strong>는 cgroup id를 스트림에 <strong>해시</strong>합니다. 무작위가 아니라 균등하게 잘 퍼뜨리는데,
-              <strong>수명을 모릅니다.</strong> 7개를 전부 쓰고도 <strong style="color: var(--accent-red);">2.36</strong> —
+              <strong>Oblivious</strong>는 cgroup id를 <strong>해시해서</strong> 스트림에 뿌립니다. 아무렇게나가 아니라 아주 고르게 퍼뜨리죠.
+              다만 <strong>수명을 모릅니다.</strong> 7개를 다 쓰고도 <strong style="color: var(--accent-red);">2.36</strong>,
               스트림을 하나도 안 쓴 FDP-default(1.62)보다 <strong>한참 나쁩니다.</strong>
             </p>
           </div>
           <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(52, 211, 153, 0.5);">
-            <h3 style="font-size: 1.08rem; color: var(--accent-green);">무엇을 pin 하느냐가 안전을 결정합니다</h3>
+            <h3 style="font-size: 1.08rem; color: var(--accent-green);">누구를 전용으로 빼 주느냐가 갈랐습니다</h3>
             <p style="font-size: 0.94rem;">
-              <strong>Fallback</strong>은 희소한 스트림을 <strong>수명이 긴 cold에 전용으로 주고</strong> hot을 기본 스트림으로 흘립니다. 결과는 <strong>1.07</strong>.
+              <strong>Fallback</strong>은 몇 개 없는 스트림을 <strong>수명이 긴 cold에 전용으로 주고</strong>, hot은 기본 스트림으로 흘려보냅니다. 결과는 <strong>1.07</strong>.
               GC를 막는 핵심이 <strong>느리게 재활용되는 cold의 격리</strong>이기 때문입니다.
             </p>
             <p style="font-size: 0.94rem; margin-top: 0.55rem;">
-              <strong>Blind</strong>는 cold를 부분적으로만 pin해서 <strong>1.30</strong> — 이득의 상당 부분을 되돌려줍니다.
+              <strong>Blind</strong>는 cold를 일부만 빼 줘서 <strong>1.30</strong> — 얻은 이득의 상당 부분을 다시 뱉어 냅니다.
             </p>
           </div>
           <div class="card" style="padding: 1rem 1.2rem;">
             <p style="font-size: 0.96rem;">
               <strong>Coherent는 단 2개로 1.00에 도달합니다.</strong>
-              스트림을 <em>공유하는 것</em> 자체는 해롭지 않습니다.
-              해로운 것은 <strong>부주의한 충돌</strong>입니다.
+              스트림을 <em>나눠 쓰는 것</em> 자체는 해롭지 않습니다.
+              해로운 건 <strong>아무나 겹치게 두는 것</strong>입니다.
             </p>
           </div>
         </div>
       </div>
       <div class="takeaway" data-tone="amber">💡 자원을 더 준다고 좋아지지 않는다. 변수는 스트림의 <em>개수</em>가 아니라 <em>배정</em>이다.</div>
       <div class="notes">
-        스트림이 부족한 현장에서 쓸 수 있는 유일한 규칙: 남는 스트림이 하나뿐이라면 cold에 줘라.
+        스트림이 모자란 현장에서 쓸 수 있는 규칙 하나: 여유 스트림이 딱 하나라면 cold에 줘라.
       </div>
     </div>
     <!-- Slide 14 -->
@@ -1437,139 +1442,139 @@
           <div class="card" style="padding: 1rem 1.2rem;">
             <h3 style="font-size: 1.08rem;">가운데 세 막대만 보십시오</h3>
             <p style="font-size: 0.95rem;">
-              <strong>스트림 개수가 똑같이 2개인데</strong> 결과는 <strong>1.80 / 1.58 / 1.27</strong>로 갈립니다.
-              달라진 것은 오직 <strong>누구를 누구와 묶었는가</strong>뿐입니다.
+              <strong>스트림 개수는 똑같이 2개인데</strong> 결과는 <strong>1.80 / 1.58 / 1.27</strong>로 갈립니다.
+              달라진 건 <strong>누구를 누구랑 묶었느냐</strong>뿐입니다.
               수명이 섞인 한 쌍은 <strong style="color: var(--accent-red);">FDP-default(1.70)보다도 나쁩니다.</strong>
             </p>
           </div>
           <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(52, 211, 153, 0.5);">
             <h3 style="font-size: 1.08rem; color: var(--accent-green);">절반의 스트림으로 같은 값</h3>
             <p style="font-size: 0.95rem;">
-              수명이 맞는 <strong>2개 묶음이 1.27</strong>, 앱마다 하나씩 준 <strong>4개가 1.23</strong>.
-              <strong>스트림을 절반만 쓰고도 사실상 같은 결과</strong>입니다.
+              수명이 맞게 묶은 <strong>2개짜리가 1.27</strong>, 앱마다 하나씩 준 <strong>4개짜리가 1.23</strong>.
+              <strong>스트림을 절반만 쓰고도 사실상 같은 결과</strong입니다.
               넷을 한 스트림에 모은 경우가 FDP-default와 똑같이 1.70인 이유는,
-              그렇게 하면 <strong>jbd2 저널만 격리될 뿐 사용자 데이터는 여전히 같은 회수 단위를 공유</strong>하기 때문입니다.
+              그렇게 묶으면 <strong>jbd2 저널만 따로 빠질 뿐, 사용자 데이터는 여전히 한 회수 단위를 같이 쓰기</strong> 때문입니다.
             </p>
           </div>
         </div>
       </div>
       <div class="takeaway" data-tone="green">💡 앱마다 스트림을 낭비할 필요가 없다. 수명이 같으면 묶어도 되고, 다르면 묶는 순간 손해다.</div>
       <div class="notes">
-        RocksDB는 direct I/O를 끄고 돌렸다. flush와 컴팩션 쓰기가 페이지 캐시를 거친다는 뜻이고, 그래서 이 실험이 buffered 경로 주장을 실제로 검증한다.
+        RocksDB는 direct I/O를 끄고 돌렸다. flush와 컴팩션 쓰기가 페이지 캐시를 거친다는 뜻이고, 그래서 이 실험이 buffered 경로 주장까지 실제로 검증한다.
       </div>
     </div>
     <!-- Slide 15 -->
     <div class="slide" id="slide-15">
       <div class="slide-header">
         <h2>오버헤드, 그리고 헷갈리기 쉬운 두 번째 노브</h2>
-        <div class="slide-subtitle">"몇 개를 세워두는가"와 "어떻게 묶는가"는 서로 다른 축입니다</div>
+        <div class="slide-subtitle">"몇 개를 세워 두느냐"와 "어떻게 묶느냐"는 서로 다른 축입니다</div>
       </div>
       <div class="slide-body grid-2">
         <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
-          <h3 style="color: var(--accent-green);">비용은 사실상 측정되지 않습니다</h3>
+          <h3 style="color: var(--accent-green);">비용은 사실상 안 잡힙니다</h3>
           <ul style="font-size: 0.97rem;">
-            <li><strong>bio당 조건부 필드 쓰기 한 번.</strong> fast path에 새 할당이 없습니다.</li>
+            <li><strong>bio 하나당 필드 하나를 조건부로 채우는 게 전부.</strong> fast path에서 메모리를 새로 잡지 않습니다.</li>
             <li>기준 대비 <strong>IOPS와 p99 차이 1% 미만.</strong></li>
             <li>커널 변경은 <strong>약 300줄</strong>이고 거의 전부 block-cgroup 코드입니다. 여기에 sentinel 초기화 한 줄이 더해집니다.</li>
-            <li>찍힌 스트림은 블록 계층을 <strong>온전히 통과</strong>합니다. 분할된 bio는 부모의 값을 물려받고, 다른 스트림끼리는 병합되지 않습니다.</li>
+            <li>한 번 찍힌 스트림은 블록 계층을 <strong>그대로 통과</strong>합니다. 쪼개진 bio는 부모 값을 물려받고, 스트림이 다르면 합쳐지지 않습니다.</li>
           </ul>
           <div style="margin-top: 0.9rem; padding: 0.85rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
-            커널 변경을 제안하는 논문에서 이 문단이 없으면 리뷰어가 가장 먼저 묻습니다.
-            <strong>"작다"는 주장은 반드시 숫자로 받쳐야 합니다.</strong>
+            커널을 고치자고 제안하는 논문에 이 문단이 없으면 리뷰어가 제일 먼저 묻습니다.
+            <strong>"가볍다"는 주장은 반드시 숫자로 받쳐야 합니다.</strong>
           </div>
         </div>
       
         <div class="card" style="border-color: rgba(251, 191, 36, 0.5);">
           <h3 style="color: var(--accent-amber);">provision(세우기) vs use(쓰기)</h3>
           <p style="font-size: 0.96rem;">
-            회수 유닛을 하나 세워두면 내부 용량이 조금 예약됩니다. 유닛을 많이 세울수록 <strong>유효 OP가 줄고</strong>,
-            배치를 관리하지 않으면 <strong>WAF가 올라갑니다.</strong>
+            회수 유닛을 하나 세워 두면 내부 용량이 조금 예약됩니다. 많이 세울수록 <strong>실제로 쓸 수 있는 OP가 줄고</strong>,
+            배치를 관리하지 않으면 그만큼 <strong>WAF가 올라갑니다.</strong>
             Q1에서 본 <strong>FDP-default가 No-FDP보다 나빴던 이유</strong>가 바로 이것입니다.
           </p>
           <div style="margin-top: 0.9rem; padding: 0.9rem; background: rgba(248, 113, 113, 0.1); border-left: 4px solid var(--accent-red); border-radius: 4px; font-size: 0.95rem;">
             <strong style="color: var(--accent-red);">그래서 Q2의 결과를 OP로 설명하면 틀립니다.</strong>
-            Stage 2의 <strong>모든 arm은 똑같이 8개를 세워 두고 똑같은 OP 비용을 냈습니다.</strong>
-            Coherent는 그중 <strong>2개로만 쓰기를 보냈을 뿐</strong>입니다.
-            따라서 arm 사이의 차이는 OP가 아니라 <strong>매핑 정합성만을 분리해 보여줍니다.</strong>
+            Stage 2의 <strong>모든 조건이 똑같이 8개를 세워 두고 똑같은 OP 비용을 냈습니다.</strong>
+            Coherent는 그중 <strong>2개로만 쓰기를 보냈을 뿐</strong>이고요.
+            그러니 조건 사이의 차이는 OP가 아니라 <strong>매핑이 수명에 맞았느냐만</strong> 보여줍니다.
           </div>
           <p style="font-size: 0.96rem; margin-top: 0.9rem;">
             주어진 cgroup 조합에 <strong>몇 개를 세울 것인가</strong> — 적게 세워 OP를 지킬지, 많이 세워 수명에 여유를 줄지 —
-            는 io.stream의 logical/physical 분리가 비로소 손에 잡히게 만든 <strong>별개의 노브</strong>이고,
-            매핑과의 공동 최적화는 <strong>향후 과제</strong>로 남아 있습니다.
+            는 io.stream의 logical/physical 분리 덕분에 비로소 손에 잡히게 된 <strong>별개의 노브</strong>입니다.
+            이걸 매핑과 같이 푸는 일은 <strong>앞으로의 숙제</strong>로 남아 있습니다.
           </p>
         </div>
       </div>
-      <div class="takeaway" data-tone="amber">💡 노브가 둘이다. <em>몇 개를 세우나</em>는 OP 비용을 정하고, <em>어떻게 묶나</em>는 정합성을 정한다.</div>
+      <div class="takeaway" data-tone="amber">💡 노브가 둘이다. <em>몇 개를 세우나</em>는 OP 비용을 정하고, <em>어떻게 묶나</em>는 수명 정합성을 정한다.</div>
       <div class="notes">
-        이 구분을 흐리면 "스트림은 무조건 적게 써야 한다"는 잘못된 교훈으로 굳는다. 논문은 그렇게 말하지 않는다.
+        이 구분을 흐리면 "스트림은 무조건 적게 써야 한다"는 잘못된 교훈으로 굳어 버린다. 논문은 그런 말을 한 적이 없다.
       </div>
     </div>
     <!-- Slide 16 -->
     <div class="slide" id="slide-16">
       <div class="slide-header">
         <h2>안 되는 것 / 아직 모르는 것</h2>
-        <div class="slide-subtitle">워크숍 논문의 미덕은 완결성이 아니라 한계를 정확히 그어 두는 데 있습니다</div>
+        <div class="slide-subtitle">워크숍 논문은 다 끝내는 게 목적이 아니라, 어디까지 됐는지를 정확히 긋는 게 목적입니다</div>
       </div>
       <div class="slide-body grid-2">
         <div class="card" style="border-color: rgba(129, 140, 248, 0.5);">
           <h3 style="color: var(--accent-indigo);">설계상의 한계</h3>
           <ul style="font-size: 0.96rem;">
             <li><strong>cgroup 경계 ≠ 수명 경계.</strong>
-              한 컨테이너 안에도 수명이 제각각인 데이터가 섞여 있습니다. RocksDB의 짧은 WAL과 긴 SSTable을
-              <strong>매크로 제어만으로는 갈라낼 수 없습니다.</strong> 앱 내부는 per-I/O 태깅의 몫으로 남습니다.</li>
+              컨테이너 하나 안에도 수명이 제각각인 데이터가 섞여 있습니다. RocksDB의 짧은 WAL과 긴 SSTable은
+              <strong>cgroup 단위로는 못 가릅니다.</strong> 앱 안쪽은 per-I/O 태깅이 할 일로 남습니다.</li>
             <li><strong>매핑을 사람이 정합니다.</strong>
-              고정된 서비스 카탈로그를 운영하는 환경에서는 가능하지만,
-              테넌트가 수시로 뜨고 지는 환경에서 <strong>정합성을 누가 공급할 것인가</strong>는 열려 있습니다.
-              이것이 논문이 스스로 "우리가 여는 정책 질문"이라고 부르는 지점입니다.</li>
+              서비스 목록이 고정된 환경이면 할 만합니다. 그런데 테넌트가 수시로 떴다 사라지는 환경에서는
+              <strong>누가 그 매핑을 계속 맞춰 줄 것이냐</strong>가 안 풀립니다.
+              논문이 스스로 "우리가 여는 정책 문제"라고 부르는 대목입니다.</li>
             <li><strong>파일시스템마다 다릅니다.</strong>
-              메타데이터 격리의 크기는 ext4의 jbd2와 XFS의 CIL이 다르게 동작합니다.
-              다만 <strong>데이터에 스탬프를 찍는 메커니즘 자체는 보편적</strong>입니다.</li>
+              메타데이터를 떼어내서 얻는 이득은 ext4(jbd2)와 XFS(CIL)가 다르게 나옵니다.
+              다만 <strong>데이터에 스트림을 찍는 방식 자체는 어디서나 똑같이 동작</strong>합니다.</li>
           </ul>
         </div>
       
         <div class="card" style="border-color: rgba(251, 191, 36, 0.5);">
           <h3 style="color: var(--accent-amber);">증거의 한계</h3>
           <ul style="font-size: 0.96rem;">
-            <li><strong>비대칭의 원인은 미규명.</strong>
+            <li><strong>왜 한쪽이 더 나쁜지는 못 밝혔습니다.</strong>
               같은 2개 스트림인데 <strong>{R,K}/{P,M}은 1.58, {R,M}/{P,K}는 1.80</strong>입니다.
-              어느 쌍이 섞이느냐에 따라 손해 폭이 다른데, <strong>펌웨어 내부를 볼 수 없어</strong> 이유를 밝히지 못했습니다.</li>
-            <li><strong>p99 개선의 기전은 가설입니다.</strong>
-              8.2 ms에서 0.6 ms로 떨어진 것은 블랙박스 바깥에서의 관측일 뿐,
-              <strong>정확히 어떤 FTL 큐가 해소되었는지</strong>는 확인하지 못했습니다.</li>
+              어느 쌍이 섞이느냐에 따라 손해가 다른데, <strong>펌웨어 안을 볼 수가 없어서</strong> 원인까지는 못 갔습니다.</li>
+            <li><strong>p99이 왜 좋아졌는지는 아직 가설입니다.</strong>
+              8.2 ms가 0.6 ms로 떨어진 건 바깥에서 관측한 결과일 뿐,
+              <strong>FTL 안에서 어떤 큐가 풀린 건지</strong>는 확인 못 했습니다.</li>
             <li><strong>규모와 범위.</strong>
-              12시간은 유의미하지만 수년에 걸친 마모를 대변하지 못합니다.
+              12시간이면 짧지는 않지만, 몇 년에 걸친 마모를 대신하지는 못합니다.
               단일 디바이스·단일 펌웨어·단일 reclaim group·OP 7%에서의 결과이며,
               <strong>다른 벤더로의 일반화는 검증되지 않았습니다.</strong></li>
-            <li><strong>읽기가 없습니다.</strong>
-              4종 모두 쓰기 집약입니다. WAF는 쓰기 수명에만 좌우되므로 의도된 선택이지만,
-              읽기가 섞인 스위트는 <strong>디바이스의 읽기 거동을 재는 별개의 질문</strong>입니다.</li>
+            <li><strong>읽기를 안 봤습니다.</strong>
+              4종 다 쓰기 위주입니다. WAF는 쓰기 수명에만 좌우되니 일부러 그렇게 잡은 건데,
+              읽기가 섞이면 <strong>그건 디바이스 읽기 거동을 재는 다른 실험</strong>이 됩니다.</li>
           </ul>
         </div>
       </div>
-      <div class="takeaway" data-tone="purple">💡 "여기까지는 보였고 여기부터는 모른다"를 정확히 적는 것이 워크숍 논문의 본체다.</div>
+      <div class="takeaway" data-tone="purple">💡 "여기까지는 확인했고 여기부터는 모른다"를 정확히 적는 것. 워크숍 논문은 그게 본체다.</div>
       <div class="notes">
-        후배들에게: 한계 절은 논문의 약점이 아니라 다음 연구의 목록이다. 실제로 다음 장이 그 목록이다.
+        한계 절은 논문의 약점이 아니라 다음에 할 일 목록이다. 실제로 다음 장이 그 목록이다.
       </div>
     </div>
     <!-- Slide 17 -->
     <div class="slide" id="slide-17">
       <div class="slide-header">
         <h2>여기서 시작할 수 있는 연구 주제</h2>
-        <div class="slide-subtitle">이 논문이 일부러 열어 둔 세 갈래 — 붙어볼 만한 곳들입니다</div>
+        <div class="slide-subtitle">논문이 일부러 열어 둔 세 갈래입니다. 바로 붙어볼 만합니다</div>
       </div>
       <div class="slide-body">
         <div class="grid-3">
           <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
             <h3 style="font-size: 1.1rem; color: var(--accent-green);">① 정합성을 학습하기</h3>
             <p style="font-size: 0.93rem;">
-              지금은 운영자가 손으로 매핑합니다. PCStream은 <strong>발행 컨텍스트로 쓰기를 묶어</strong> 같은 그룹이 함께 죽는다는 관찰을 썼습니다.
+              지금은 운영자가 손으로 매핑합니다. PCStream은 <strong>어느 코드에서 나온 쓰기냐로 묶어</strong> 같은 그룹이 같이 죽는다는 걸 이용했습니다.
             </p>
             <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-              io.stream에서는 <strong>쓰기가 이미 cgroup으로 태깅</strong>되어 있으므로 커널이 콜스택을 뒤져 그룹을 복원할 필요가 없습니다.
-              남는 일은 <strong>각 cgroup의 수명을 추정</strong>하는 것뿐입니다.
+              io.stream에서는 <strong>쓰기에 이미 cgroup이 붙어</strong> 있으니, 커널이 콜스택을 뒤져 그룹을 복원할 필요가 없습니다.
+              남은 일은 <strong>cgroup별 수명을 추정하는 것</strong> 하나입니다.
             </p>
             <p style="font-size: 0.93rem; margin-top: 0.6rem; color: var(--accent-green);">
-              <strong>안전 조건:</strong> 확신이 서기 전에는 추측하지 않고 기본으로 흘려보낼 것.
+              <strong>지킬 것:</strong> 확신 서기 전에는 추측하지 말고 기본 스트림으로 흘려보낼 것.
             </p>
           </div>
       
@@ -1580,31 +1585,30 @@
               io.stream은 <strong>테넌트 <em>사이</em></strong>를 가릅니다. 직교하는 두 축입니다.
             </p>
             <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-              앞서 본 <strong>sentinel 규칙이 둘을 가산적으로</strong> 만듭니다. 하지만 둘 다 <strong>같은 좁은 물리 스트림 공간</strong>을 나눠 쓰므로 조율이 필요합니다.
+              앞에서 본 <strong>sentinel 규칙 덕분에 둘이 서로 더해집니다.</strong> 다만 둘 다 <strong>얼마 안 되는 물리 스트림</strong>을 나눠 써야 해서 조율이 필요합니다.
             </p>
             <p style="font-size: 0.93rem; margin-top: 0.6rem; color: var(--accent-purple);">
-              <strong>열린 질문:</strong> 커널은 운영자의 배정을 권위로 받아들여야 하나, 관측으로 보정해야 하나?
+              <strong>열린 질문:</strong> 커널은 운영자가 정한 값을 그대로 따라야 하나, 관측해서 고쳐야 하나?
             </p>
           </div>
       
           <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
             <h3 style="font-size: 1.1rem; color: var(--accent-amber);">③ 프로비저닝 공동 최적화</h3>
             <p style="font-size: 0.93rem;">
-              앞 장의 두 노브입니다. <strong>몇 개의 회수 유닛을 세울 것인가</strong>(적게 세워 OP를 지킬지, 많이 세워 수명에 여유를 줄지)와
-              <strong>어떻게 묶을 것인가</strong>는 서로 얽혀 있습니다.
+              앞 장의 두 노브입니다. <strong>회수 유닛을 몇 개 세울 것인가</strong>(적게 세워 OP를 지킬지, 많이 세워 수명에 여유를 줄지)와
+              <strong>어떻게 묶을 것인가</strong>가 서로 얽혀 있습니다.
             </p>
             <p style="font-size: 0.93rem; margin-top: 0.6rem;">
-              io.stream의 <strong>logical/physical 분리</strong>가 이 문제를 비로소 손에 잡히는 형태로 만들었지만,
-              <strong style="color: var(--accent-amber);">둘을 같이 푸는 일은 통째로 남아 있습니다.</strong>
+              io.stream의 <strong>logical/physical 분리</strong> 덕에 이제 문제를 세울 수는 있게 됐는데,
+              <strong style="color: var(--accent-amber);">둘을 같이 푸는 건 통째로 남아 있습니다.</strong>
             </p>
           </div>
         </div>
       
         <div class="highlight-box" style="margin-top: 0.2rem; padding: 1rem 1.3rem;">
           <p style="font-size: 1.02rem;">
-            세 갈래 모두 <strong>커널 쪽 실험 환경이 이미 갖춰져 있다는 전제</strong>에서 출발합니다 —
-            cgroup 계층, blkcg 라벨, 그리고 300줄짜리 훅. 새 인터페이스를 설계하지 않고도 정책만 바꿔 실험할 수 있다는 점이
-            <strong>연구 주제로서의 진입 장벽을 크게 낮춥니다.</strong>
+            세 갈래 다 <strong>커널 쪽 판이 이미 깔려 있다는 게 전제</strong>입니다 — cgroup 계층, blkcg 라벨, 그리고 300줄짜리 훅.
+            새 인터페이스를 설계할 필요 없이 <strong>정책만 바꿔서 실험할 수 있다는 점</strong>에서, 시작하기 부담이 적은 주제들입니다.
           </p>
         </div>
       </div>
@@ -1616,96 +1620,429 @@
     <div class="slide" id="slide-18">
       <div class="slide-header">
         <h2>결론</h2>
-        <div class="slide-subtitle">운영자가 쓰는 단위로 배치를 노출하면, FDP는 앱을 고치지 않고도 쓸 수 있게 됩니다</div>
+        <div class="slide-subtitle">운영자가 실제로 쓰는 단위로 배치를 열어 주면, 앱을 안 고치고도 FDP를 쓸 수 있습니다</div>
       </div>
       <div class="slide-body">
         <div class="highlight-box">
-          <div class="highlight-title">처음에 걸어둔 문장으로 돌아오면</div>
+          <div class="highlight-title">처음에 띄웠던 문장으로 돌아오면</div>
           <p style="font-size: 1.15rem; line-height: 1.7;">
             WAF를 지배하는 것은 <strong>스트림의 개수가 아니라 매핑의 수명 정합성</strong>이다.
-            정합적인 많은-대-하나 병합은 <strong>절반의 스트림으로 cgroup별 완전 격리에 필적</strong>했고,
-            비정합적인 매핑은 <strong>FDP를 쓰지 않은 것보다 나빴다.</strong>
+            수명이 맞게 여러 cgroup을 하나로 묶으면 <strong>스트림을 절반만 쓰고도 cgroup마다 하나씩 준 것과 비슷</strong>했고,
+            수명이 안 맞게 묶으면 <strong>FDP를 아예 안 쓴 것보다 나빴다.</strong>
           </p>
         </div>
         <div class="grid-3" style="margin-top: 0.3rem;">
           <div class="card">
             <h3 style="font-size: 1.1rem;">무엇을 했나</h3>
             <p style="font-size: 0.95rem;">
-              cgroup v2 I/O 컨트롤러에 파일 하나를 더해, 운영자가 테넌트에 배치 스트림을 배정할 수 있게 했습니다.
-              커널은 그 cgroup의 <strong>모든 데이터 쓰기에 스트림을 찍습니다.</strong>
+              cgroup v2 I/O 컨트롤러에 파일 하나를 추가해서, 운영자가 테넌트마다 배치 스트림을 지정할 수 있게 했습니다.
+              그러면 커널이 그 cgroup의 <strong>모든 데이터 쓰기에 스트림을 찍어 줍니다.</strong>
             </p>
           </div>
           <div class="card">
             <h3 style="font-size: 1.1rem;">왜 되는가</h3>
             <p style="font-size: 0.95rem;">
-              cgroup 라벨은 <strong>버퍼드·라이트백 경로까지 포함해 모든 데이터 쓰기 bio에 이미 실려</strong> 있습니다.
-              per-I/O 태깅이 닿지 못하는 바로 그 경로입니다.
+              cgroup 라벨은 <strong>버퍼드·라이트백까지 포함해서 모든 데이터 쓰기 bio에 이미 붙어</strong> 있습니다.
+              per-I/O 태깅이 못 가는 바로 그 경로에요.
             </p>
           </div>
           <div class="card">
             <h3 style="font-size: 1.1rem;">무엇을 남기나</h3>
             <p style="font-size: 0.95rem;">
-              테넌트가 뜨고 지는 동안 <strong>정합성을 온라인으로 공급하는 문제</strong>는 열려 있습니다.
-              이 논문은 그 정책 질문을 여는 데까지가 몫입니다.
+              테넌트가 떴다 사라지는 동안 <strong>그 매핑을 실시간으로 맞춰 주는 문제</strong>는 아직 안 풀렸습니다.
+              이 논문은 그 정책 문제를 여는 데까지입니다.
             </p>
           </div>
         </div>
       </div>
       <div class="takeaway" data-tone="green">💡 하드웨어를 켜는 문제가 아니라, <em>누가 결정하는가</em>를 정하는 문제였다.</div>
       <div class="notes">
-        표지에서 걸어둔 문장을 그대로 다시 읽어준다. 반복이 기억을 만든다.
+        표지에서 띄웠던 문장을 그대로 다시 읽는다. 반복해야 남는다.
       </div>
     </div>
     <!-- Slide 19 -->
     <div class="slide" id="slide-19">
       <div class="slide-header">
-        <h2>Q &amp; A</h2>
-        <div class="slide-subtitle">경청해 주셔서 감사합니다</div>
+        <h2>여기서부터는 FDP 자체 이야기<span class="appendix-badge">PART 2</span></h2>
+        <div class="slide-subtitle">규격은 하나인데 장비마다 결과가 다릅니다. 이 차이를 모르면 FDP로 실험을 설계할 수 없습니다</div>
       </div>
-      <div class="slide-body" style="justify-content: center;">
-        <div class="grid-2">
-          <div class="card" style="border-color: rgba(56, 189, 248, 0.5);">
-            <h3>오늘 다룬 세 질문</h3>
-            <ul style="font-size: 1rem;">
-              <li><strong>Q1.</strong> FDP만 켜면? → 아무 일도 없고, 오히려 조금 나빠집니다.</li>
-              <li><strong>Q2.</strong> 스트림을 많이 주면? → 전부 쓴 쪽이 꼴찌였습니다(2.36).</li>
-              <li><strong>Q3.</strong> 실제 앱에서도? → 됩니다. 단 <strong>묶는 기준이 전부</strong>입니다.</li>
-            </ul>
+      <div class="slide-body grid-2">
+        <div style="display: flex; flex-direction: column; gap: 0.6rem; min-height: 0;">
+          <div class="wafchart">
+            <div class="wafbar">
+              <span class="wafnum">2.00</span>
+              <div class="wafcol" data-tone="ok" style="height: 34%;"></div>
+              <span class="waflabel"><b>SSD A</b><em>7.68 TB · U.3</em></span>
+            </div>
+            <div class="wafbar">
+              <span class="wafnum">3.51</span>
+              <div class="wafcol" data-tone="bad" style="height: 87%;"></div>
+              <span class="waflabel"><b>SSD B</b><em>3.84 TB · E1.S</em></span>
+            </div>
           </div>
-          <div class="card" style="border-color: rgba(129, 140, 248, 0.5);">
-            <h3>더 파고들 거리</h3>
-            <ul style="font-size: 1rem;">
-              <li>논문: <code>DOI 10.1145/3837053.3837343</code></li>
-              <li>커널 쪽 배경: cgroup v2 I/O 컨트롤러, cgroup writeback, 블록 계층 write stream</li>
-              <li>부록에 실험 설정과 예상 질문을 붙여 두었습니다 <span style="color: var(--text-muted);">(→ 다음 두 장)</span></li>
+          <div class="axis-note">
+            같은 워크로드(128 KB 완전 랜덤 쓰기, 스트림 하나), 같은 PCIe Gen5 · NVMe 2.1 · RUH 8개.
+            그런데 정상상태 WAF는 <strong>1.75배</strong> 차이 납니다. <span style="color: var(--text-muted);">(WARP, FAST '26)</span>
+          </div>
+        </div>
+      
+        <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+          <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(251, 191, 36, 0.45);">
+            <h3 style="font-size: 1.1rem; color: var(--accent-amber);">벤더가 정해 놓고 알려주지 않는 네 가지</h3>
+            <ul style="font-size: 0.94rem;">
+              <li><strong>RU 크기</strong> — 한 번에 회수되는 덩어리의 크기 (보통 NAND 슈퍼블록)</li>
+              <li><strong>OP 비율</strong> — 내부에 숨겨 둔 여유 공간이 몇 %인가</li>
+              <li><strong>RUH 개수</strong> — 호스트가 쓸 수 있는 스트림이 몇 개인가</li>
+              <li><strong>RUH 격리 방식</strong> — <strong style="color: var(--accent-amber);">II냐 PI냐</strong> (다음 장)</li>
             </ul>
+            <p style="font-size: 0.92rem; margin-top: 0.6rem; color: var(--text-muted);">
+              전부 펌웨어에 박혀 있고, 호스트에서는 확인할 방법이 없습니다.
+            </p>
+          </div>
+          <div class="card" style="padding: 1.1rem 1.3rem;">
+            <h3 style="font-size: 1.1rem;">호환성을 얻는 대신 포기한 것</h3>
+            <p style="font-size: 0.94rem;">
+              ZNS와 Open-Channel은 회수까지 호스트가 하게 했습니다. FDP는 반대로 <strong>GC를 통째로 장비에 남겨 뒀습니다.</strong>
+              덕분에 평범한 블록 디바이스로 남았지만, 대신 <strong style="color: var(--accent-red);">힌트를 어떻게 받아들일지는 전적으로 펌웨어 마음</strong>입니다.
+            </p>
           </div>
         </div>
       </div>
+      <div class="takeaway" data-tone="amber">💡 "FDP 지원"이라는 스펙은 인터페이스만 약속한다. WAF가 얼마나 내려갈지는 약속하지 않는다.</div>
       <div class="notes">
-        질문이 없으면 부록 A의 첫 질문("cgroup 안에 수명이 섞이면 어떻게 하나")을 스스로 꺼내 대화를 연다.
+        여기서부터는 io.stream 논문 밖이다. 앞은 "호스트가 무엇을 묶을까"였고, 이제부터는 "장비가 그 묶음을 어떻게 다루는가"다.
+        후배들이 FDP로 자기 실험을 시작하려면 이쪽을 먼저 알아야 한다.
       </div>
     </div>
     <!-- Slide 20 -->
     <div class="slide" id="slide-20">
       <div class="slide-header">
+        <h2>FDP 특성 ①: II와 PI — 그리고 유효 OP</h2>
+        <div class="slide-subtitle">GC가 살려낸 데이터를 어디에 다시 쓰느냐. 이 한 가지가 OP 예산과 맞물려 승부를 뒤집습니다</div>
+      </div>
+      <div class="slide-body">
+        <div class="wafchart">
+          <div class="wafbar">
+            <span class="wafnum">2.92</span>
+            <div class="wafcol" data-tone="ok" style="height: 58%;"></div>
+            <span class="waflabel"><b>II</b><em>OP 3%</em></span>
+          </div>
+          <div class="wafbar">
+            <span class="wafnum">3.81</span>
+            <div class="wafcol" data-tone="purple" style="height: 85%;"></div>
+            <span class="waflabel"><b>PI</b><em>OP 3%</em></span>
+          </div>
+          <div class="wafbar">
+            <span class="wafnum">2.19</span>
+            <div class="wafcol" data-tone="ok" style="height: 36%;"></div>
+            <span class="waflabel"><b>II</b><em>OP 5%</em></span>
+          </div>
+          <div class="wafbar">
+            <span class="wafnum">2.37</span>
+            <div class="wafcol" data-tone="purple" style="height: 42%;"></div>
+            <span class="waflabel"><b>PI</b><em>OP 5%</em></span>
+          </div>
+          <div class="wafbar">
+            <span class="wafnum">1.34</span>
+            <div class="wafcol" data-tone="ok" style="height: 10%;"></div>
+            <span class="waflabel"><b>II</b><em>OP 10%</em></span>
+          </div>
+          <div class="wafbar">
+            <span class="wafnum">1.18</span>
+            <div class="wafcol" data-tone="purple" style="height: 5%;"></div>
+            <span class="waflabel"><b>PI</b><em>OP 10%</em></span>
+          </div>
+          <div class="wafbar">
+            <span class="wafnum">1.09</span>
+            <div class="wafcol" data-tone="ok" style="height: 3%;"></div>
+            <span class="waflabel"><b>II</b><em>OP 14%</em></span>
+          </div>
+          <div class="wafbar">
+            <span class="wafnum">1.06</span>
+            <div class="wafcol" data-tone="purple" style="height: 2%;"></div>
+            <span class="waflabel"><b>PI</b><em>OP 14%</em></span>
+          </div>
+        </div>
+        <div class="axis-note">
+          80/20 워크로드, RU 256 MB, 장비 용량의 5배를 쓴 뒤 측정.
+          <strong style="color: var(--accent-amber);">OP 7~9% 부근에서 순위가 뒤집힙니다.</strong>
+          <span style="color: var(--text-muted);">(WARP Fig. 18–19)</span>
+        </div>
+      
+        <div class="grid-2" style="margin-top: 0.1rem;">
+          <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(56, 189, 248, 0.5);">
+            <h3 style="font-size: 1.08rem; color: var(--accent-blue);">II — 처음 쓸 때만 갈라 둡니다</h3>
+            <p style="font-size: 0.94rem;">
+              Initially Isolated. 호스트가 쓰는 순간에는 RUH별로 나뉘지만,
+              GC가 살아남은 페이지를 옮길 때는 <strong>전부 공용 GC-RUH 한 곳으로 모읍니다.</strong>
+              여유 공간을 한 군데에 몰아 쓰니 <strong style="color: var(--accent-blue);">OP가 빠듯할 때 잘 버팁니다.</strong>
+              대신 시간이 지나면 서로 다른 RUH의 데이터가 한 블록에 섞입니다.
+            </p>
+          </div>
+          <div class="card" style="padding: 1rem 1.2rem; border-color: rgba(192, 132, 252, 0.5);">
+            <h3 style="font-size: 1.08rem; color: var(--accent-purple);">PI — 복사본까지 원래 자리에 남깁니다</h3>
+            <p style="font-size: 0.94rem;">
+              Persistently Isolated. GC 복사본도 <strong>출신 RUH 안에 그대로</strong> 둡니다. 격리가 끝까지 유지되죠.
+              문제는 <strong>여유 공간이 RUH 개수만큼 쪼개진다는 것</strong>입니다.
+              OP가 부족하면 RUH마다 숨 쉴 틈이 없어져 GC가 잦아지고,
+              <strong style="color: var(--accent-purple);">OP가 넉넉해야 비로소 더 낮은 하한에 도달합니다.</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="takeaway" data-tone="purple">💡 격리를 더 철저히 하면 항상 좋아지는 게 아니다. 격리는 <em>여유 공간을 쪼개는 값</em>을 치르고 사는 것이다.</div>
+      <div class="notes">
+        이 장이 Part 1의 15번 슬라이드("세우기 vs 쓰기")와 정확히 같은 이야기의 장비 쪽 판본이다.
+        호스트에서는 "스트림을 몇 개 세우면 유효 OP가 줄어든다"였고, 장비에서는 "격리를 강하게 걸면 여유 공간이 쪼개진다"이다.
+        교차점은 RU 크기에 따라서도 움직이므로, "II가 낫다 / PI가 낫다"는 구성 없이는 성립하지 않는 문장이다.
+      </div>
+    </div>
+    <!-- Slide 21 -->
+    <div class="slide" id="slide-21">
+      <div class="slide-header">
+        <h2>FDP 특성 ②: FDP가 깨지는 세 가지 방식</h2>
+        <div class="slide-subtitle">호스트가 태깅을 했는데도 이득이 사라지는 경우들 — 전부 실제 장비에서 관측된 것입니다</div>
+      </div>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card" style="border-color: rgba(248, 113, 113, 0.45);">
+            <h3 style="font-size: 1.08rem; color: var(--accent-red);">① 분류가 너무 거칠 때</h3>
+            <p style="font-size: 0.93rem;">
+              F2FS는 FDP 힌트를 지원합니다. 그런데 Filebench Fileserver를 돌려놓고 eBPF로 실제 힌트를 세어 보니,
+              <strong style="color: var(--accent-red);">사용자 데이터 쓰기의 99%가 WARM 하나</strong>로 몰려 있었습니다.
+            </p>
+            <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+              결국 거의 모든 쓰기가 RUH 하나로 들어가고, WAF 곡선은 <strong>FDP를 안 켠 것과 겹칩니다.</strong>
+              노드와 메타데이터는 분리되지만 그것만으로는 부족했습니다.
+            </p>
+            <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--accent-amber);">
+              <strong>"FDP를 지원한다"와 "FDP 덕을 본다"는 다른 말입니다.</strong>
+            </p>
+          </div>
+      
+          <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
+            <h3 style="font-size: 1.08rem; color: var(--accent-amber);">② Noisy RUH</h3>
+            <p style="font-size: 0.93rem;">
+              한 RUH에서 무효화가 몰아치면 <strong>다른 RUH의 증폭까지 같이 올라갑니다.</strong>
+              80/20 워크로드에서, 무효화만 하는 스트림이 GC를 재촉하자
+              트래픽 양은 그대로인 옆 RUH의 증폭 기여도가 <strong>전체의 26%</strong>까지 올라갔습니다.
+            </p>
+            <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+              RUH는 <strong>이름만 격리</strong>일 뿐, GC 압력과 여유 공간은 결국 <strong>한 장비 안에서 공유</strong>됩니다.
+            </p>
+            <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--text-muted);">
+              에뮬레이터에서 먼저 보였고, 상용 장비 두 대에서도 같은 패턴이 나왔습니다.
+            </p>
+          </div>
+      
+          <div class="card" style="border-color: rgba(129, 140, 248, 0.45);">
+            <h3 style="font-size: 1.08rem; color: var(--accent-indigo);">③ Save Sequential</h3>
+            <p style="font-size: 0.93rem;">
+              순차 쓰기 스트림은 스스로 통째로 무효화되니 안전할 것 같습니다.
+              그런데 OP가 빠듯하고 GC 휴리스틱이 급하면, 장비가 <strong>곧 덮어써질 데이터를 미리 회수해</strong> 버립니다.
+            </p>
+            <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+              그 결과 전체 트래픽의 88%를 차지하던 <strong>순차 RUH가 오히려 WAF의 최대 기여자</strong>가 됐습니다.
+            </p>
+            <p style="font-size: 0.9rem; margin-top: 0.6rem; color: var(--accent-indigo);">
+              <strong>시끄러운 쪽이 아니라 덩치 큰 쪽이 대가를 치릅니다.</strong>
+            </p>
+          </div>
+        </div>
+      
+        <div class="highlight-box" style="margin-top: 0.2rem; padding: 1rem 1.3rem;">
+          <p style="font-size: 1.02rem;">
+            세 가지 모두 <strong>호스트가 수명을 제대로 갈랐는지와는 별개로</strong> 일어납니다.
+            즉 Part 1에서 본 <strong>매핑의 수명 정합성은 필요조건이지 충분조건이 아닙니다.</strong>
+            나머지 절반은 장비 안에 있고, 그 절반은 지금까지 아무도 열어 볼 수 없었습니다.
+          </p>
+        </div>
+      </div>
+      <div class="notes">
+        ①은 "우리 파일시스템도 FDP 됩니다"를 곧이곧대로 믿으면 안 된다는 사례,
+        ②③은 호스트가 아무리 잘해도 장비가 망칠 수 있다는 사례다.
+        다음 장의 WARP는 정확히 이 "열어 볼 수 없다"를 푸는 도구다.
+      </div>
+    </div>
+    <!-- Slide 22 -->
+    <div class="slide" id="slide-22">
+      <div class="slide-header">
+        <h2>WARP — FDP SSD를 열어 보는 오픈 에뮬레이터</h2>
+        <div class="slide-subtitle">Inho Song 외, <em>Characterizing and Emulating FDP SSDs with WARP</em>, USENIX FAST '26 (pp. 347–362)</div>
+      </div>
+      <div class="slide-body grid-2">
+        <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
+          <div class="card" style="padding: 1.1rem 1.3rem;">
+            <h3 style="font-size: 1.1rem;">무엇을 했나</h3>
+            <ul style="font-size: 0.93rem;">
+              <li><strong>상용 FDP SSD 두 대를 교차 측정</strong>했습니다. 합성 벤치(fio), 프로덕션 트레이스(CacheLib의 kvcache·cdn·twitter), 파일시스템 워크로드(F2FS + Filebench)까지.</li>
+              <li><strong>WARP를 만들어 공개</strong>했습니다. FEMU 위에 올린 <strong>최초의 오픈 FDP 에뮬레이터</strong>이고, 이름은 Write Amplification Research Platform의 약자입니다.</li>
+              <li>실제 장비의 WAF 추세를 <strong>0.2~0.3 오차</strong>로 따라갑니다.</li>
+              <li>펌웨어가 숨기던 값을 전부 <strong>연구용 노브</strong>로 꺼냈습니다 — II/PI, RU 크기, OP 비율, RUH 개수, GC 휴리스틱.</li>
+              <li>그리고 하드웨어가 절대 안 보여주는 것을 보여줍니다: <strong>RUH별 증폭량, GC가 어느 RU를 골랐는지, RUH끼리 자원을 어떻게 나눠 쓰는지.</strong></li>
+            </ul>
+          </div>
+          <div class="card" style="padding: 0.85rem 1.2rem; flex: none;">
+            <p style="font-size: 0.9rem; color: var(--text-muted);">
+              코드는 FEMU에 업스트림되어 있습니다 · <code style="font-size: 0.82rem;">github.com/MoatLab/FEMU</code>
+            </p>
+          </div>
+        </div>
+      
+        <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+          <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(52, 211, 153, 0.5);">
+            <h3 style="font-size: 1.1rem; color: var(--accent-green);">후배들에게 이게 왜 중요하냐면</h3>
+            <ul style="font-size: 0.93rem;">
+              <li><strong>장비가 없어도 시작할 수 있습니다.</strong> FDP SSD는 비싸고, 구해도 내부는 안 보입니다.</li>
+              <li><strong>실제로 장비가 죽습니다.</strong> 이 논문에서도 SSD B는 평가 도중 쓰기가 누적되어 고장 났고, 그래서 일부 결과만 실렸습니다.</li>
+              <li><strong>펌웨어 정책을 직접 바꿔 볼 수 있습니다.</strong> "II 대신 PI였다면?", "RU가 절반이었다면?" 같은 질문을 실험으로 만들 수 있습니다.</li>
+            </ul>
+          </div>
+          <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(251, 191, 36, 0.5);">
+            <h3 style="font-size: 1.1rem; color: var(--accent-amber);">노브 하나 돌려서 얻은 예시</h3>
+            <p style="font-size: 0.93rem;">
+              CacheLib kvcache 트레이스(SOC 40%)에서 <strong>NoFDP 2.0 → FDP 1.37</strong>까지는 호스트가 만든 이득입니다.
+              여기에 작은 객체 캐시 RUH에만 <strong>한 채널짜리 작은 RU</strong>를 배정했더니 <strong style="color: var(--accent-amber);">1.16</strong>까지 더 내려갔습니다.
+            </p>
+            <p style="font-size: 0.93rem; margin-top: 0.6rem;">
+              호스트를 하나도 안 고치고 <strong>장비 쪽 설정만 바꿔서</strong> 얻은 개선입니다.
+              논문은 여기서 <strong>워크로드에 따라 RU 크기를 바꾸는 방향</strong>을 다음 과제로 제안합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="takeaway" data-tone="green">💡 io.stream이 "누가 묶을지"를 열었다면, WARP는 "묶은 뒤 장비 안에서 무슨 일이 벌어지는지"를 열었다.</div>
+      <div class="notes">
+        FAST는 스토리지 분야 최상위 학회다. 워크숍 논문(HotStorage)과 정규 논문(FAST)이 각각 어떤 역할을 하는지도 여기서 한 번 짚어주면 좋다.
+        링크: usenix.org/conference/fast26/presentation/song
+      </div>
+    </div>
+    <!-- Slide 23 -->
+    <div class="slide" id="slide-23">
+      <div class="slide-header">
+        <h2>두 논문을 겹쳐 놓으면 빈칸이 보입니다</h2>
+        <div class="slide-subtitle">아래 세 가지는 두 논문 어디에도 없는, 우리가 붙여 본 조합입니다</div>
+      </div>
+      <div class="slide-body">
+        <div class="card" style="padding: 0.9rem 1.3rem; flex: none;">
+          <p style="font-size: 1rem;">
+            <strong style="color: var(--accent-green);">io.stream</strong>은 호스트 쪽 노브를 열었습니다 — 어떤 cgroup을 어느 스트림에 보낼 것인가.
+            <strong style="color: var(--accent-purple);">WARP</strong>는 장비 쪽 노브를 열었습니다 — II/PI, RU 크기, OP, GC 정책.
+            <strong>둘을 동시에 돌려 본 사람은 아직 없습니다.</strong>
+          </p>
+        </div>
+      
+        <div class="grid-3" style="margin-top: 0.2rem;">
+          <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
+            <h3 style="font-size: 1.06rem; color: var(--accent-green);">① 호스트 매핑 × 장비 정책 공동 설계</h3>
+            <p style="font-size: 0.92rem;">
+              io.stream의 cgroup 매핑을 WARP 위에 얹고, II/PI와 RU 크기를 같이 흔들어 봅니다.
+            </p>
+            <p style="font-size: 0.92rem; margin-top: 0.55rem;">
+              <strong>물어볼 것:</strong> 매핑이 정합적일 때는 PI가 확실히 유리한가? 반대로 매핑이 엉성하면 II가 그 실수를 덮어 주는가?
+            </p>
+            <p style="font-size: 0.9rem; margin-top: 0.55rem; color: var(--text-muted);">
+              실제 장비로는 II/PI를 못 바꾸니 애초에 물어볼 수 없던 질문입니다.
+            </p>
+          </div>
+      
+          <div class="card" style="border-color: rgba(251, 191, 36, 0.45);">
+            <h3 style="font-size: 1.06rem; color: var(--accent-amber);">② 스트림 하나의 값을 OP로 환산하기</h3>
+            <p style="font-size: 0.92rem;">
+              io.stream은 "회수 유닛을 세우면 유효 OP가 준다"고 말했지만, <strong>얼마나 주는지는 세지 못했습니다.</strong>
+              장비 안이 안 보였으니까요.
+            </p>
+            <p style="font-size: 0.92rem; margin-top: 0.55rem;">
+              <strong>물어볼 것:</strong> 스트림을 하나 더 세우는 비용은 OP 몇 %인가? 그 값이 있으면
+              <strong>"스트림 N개를 쓸 만한가"를 계산으로 답할 수 있습니다.</strong>
+            </p>
+          </div>
+      
+          <div class="card" style="border-color: rgba(129, 140, 248, 0.45);">
+            <h3 style="font-size: 1.06rem; color: var(--accent-indigo);">③ 시끄러운 RUH를 cgroup으로 누르기</h3>
+            <p style="font-size: 0.92rem;">
+              Noisy RUH는 <strong>결국 시끄러운 테넌트</strong>입니다. 그런데 io.stream은
+              <code>io.max</code>·<code>io.weight</code>와 <strong>같은 컨트롤러 안에</strong> 있습니다.
+            </p>
+            <p style="font-size: 0.92rem; margin-top: 0.55rem;">
+              <strong>물어볼 것:</strong> 배치를 갈라 주는 것과 속도를 눌러 주는 것을 <strong>한 정책으로 같이</strong> 하면 어떻게 되나?
+              스트림만 가르는 것보다 나은가?
+            </p>
+          </div>
+        </div>
+      
+        <div class="highlight-box" style="margin-top: 0.2rem; padding: 0.9rem 1.3rem;">
+          <p style="font-size: 1rem;">
+            셋 다 <strong>새 인터페이스를 설계할 필요가 없습니다.</strong> cgroup 계층, blkcg 라벨, 300줄짜리 훅, 그리고 오픈된 에뮬레이터가 이미 있습니다.
+            바꿀 것은 <strong>정책뿐</strong>이라, 학부 인턴이나 석사 첫 학기에도 손댈 수 있는 크기입니다.
+          </p>
+        </div>
+      </div>
+      <div class="notes">
+        이 장은 논문 요약이 아니라 제안이다. 그렇게 말하고 넘어갈 것 — 두 논문 어디에도 이 조합은 없다.
+        ①은 FTL·디바이스 쪽, ②는 측정·모델링 쪽, ③은 커널 정책 쪽에 가깝다. 관심사에 따라 고르면 된다.
+      </div>
+    </div>
+    <!-- Slide 24 -->
+    <div class="slide" id="slide-24">
+      <div class="slide-header">
+        <h2>Q &amp; A</h2>
+        <div class="slide-subtitle">들어주셔서 감사합니다</div>
+      </div>
+      <div class="slide-body" style="justify-content: center;">
+        <div class="grid-3">
+          <div class="card" style="border-color: rgba(56, 189, 248, 0.5);">
+            <h3>Part 1에서 답한 것</h3>
+            <ul style="font-size: 0.97rem;">
+              <li><strong>Q1.</strong> FDP만 켜면? → 아무 일도 안 생기고, 오히려 조금 나빠집니다.</li>
+              <li><strong>Q2.</strong> 스트림을 많이 주면? → 다 쓴 쪽이 꼴찌였습니다(2.36).</li>
+              <li><strong>Q3.</strong> 실제 앱에서도? → 됩니다. 단 <strong>묶는 기준이 전부</strong>입니다.</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: rgba(192, 132, 252, 0.5);">
+            <h3>Part 2에서 본 것</h3>
+            <ul style="font-size: 0.97rem;">
+              <li>같은 "FDP 지원"이라도 <strong>장비마다 WAF가 1.75배 차이</strong>납니다.</li>
+              <li><strong>II와 PI</strong>의 승부는 <strong>OP 예산</strong>이 가릅니다(교차점 7~9%).</li>
+              <li>호스트가 잘해도 <strong>Noisy RUH·Save Sequential</strong>로 깨질 수 있습니다.</li>
+              <li><strong>WARP</strong>가 그 안을 들여다볼 수 있게 열어 줬습니다.</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: rgba(129, 140, 248, 0.5);">
+            <h3>더 볼 자료</h3>
+            <ul style="font-size: 0.97rem;">
+              <li>io.stream: <code style="font-size: 0.8rem;">DOI 10.1145/3837053.3837343</code></li>
+              <li>WARP: FAST '26 · 코드는 <code style="font-size: 0.8rem;">MoatLab/FEMU</code></li>
+              <li>커널 배경: cgroup v2 I/O 컨트롤러, cgroup writeback, 블록 계층 write stream</li>
+              <li>부록에 실험 설정과 예상 질문을 붙여 뒀습니다 <span style="color: var(--text-muted);">(→ 다음 두 장)</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        질문이 안 나오면 부록 A의 첫 질문("cgroup 안에 수명이 섞이면 어떻게 하나")을 내가 먼저 꺼내서 시작한다.
+      </div>
+    </div>
+    <!-- Slide 25 -->
+    <div class="slide" id="slide-25">
+      <div class="slide-header">
         <h2>부록 A. 나올 만한 질문<span class="appendix-badge">APPENDIX</span></h2>
-        <div class="slide-subtitle">논문이 답하는 질문과, 답하지 않는 질문을 구분해 두었습니다</div>
+        <div class="slide-subtitle">논문이 답할 수 있는 질문과 못 하는 질문을 나눠 뒀습니다</div>
       </div>
       <div class="slide-body grid-2">
         <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
           <h3 style="color: var(--accent-green);">논문 안에 답이 있는 질문</h3>
           <ul style="font-size: 0.93rem;">
             <li><strong>"cgroup 하나에 수명이 섞여 있으면요?"</strong><br>
-              매크로 근사치임을 논문이 먼저 인정합니다. 앱 내부는 per-I/O 태깅의 몫이고, sentinel 규칙 덕에 두 방식이 <strong>동시에 쓰일 수 있습니다.</strong></li>
+              굵직한 근사치라는 걸 논문이 먼저 인정합니다. 앱 안쪽은 per-I/O 태깅이 할 일이고, sentinel 규칙 덕분에 <strong>둘을 같이 쓸 수 있습니다.</strong></li>
             <li><strong>"cgroup이 스트림보다 훨씬 많으면요?"</strong><br>
-              Stage 2가 정확히 그 상황입니다(14 대 7). 기본 정책은 해시가 아니라 <strong>fallback</strong>이라 남는 cgroup은 기본 스트림으로 갈 뿐 <strong>남의 스트림을 침범하지 않습니다.</strong></li>
+              Stage 2가 딱 그 상황입니다(14 대 7). 기본 정책이 해시가 아니라 <strong>fallback</strong>이라, 자리 없는 cgroup은 기본 스트림으로 갈 뿐 <strong>남의 스트림을 건드리지 않습니다.</strong></li>
             <li><strong>"운영자가 수명을 잘못 판단하면요?"</strong><br>
-              그게 Blind(1.30)와 Oblivious(2.36) 실험입니다. <strong>잘못 묶으면 FDP-default보다 나쁩니다.</strong> 그래서 확신이 없으면 기본으로 흘리는 편이 안전합니다.</li>
+              그거 확인하려고 한 게 Blind(1.30)와 Oblivious(2.36)입니다. <strong>잘못 묶으면 FDP-default보다 나쁩니다.</strong> 확신 없으면 그냥 기본으로 흘리는 게 안전합니다.</li>
             <li><strong>"앱이 이미 io_uring으로 스트림을 지정했다면요?"</strong><br>
-              앱이 넣은 값이 <strong>항상 이깁니다.</strong> 0을 명시한 경우까지 보존됩니다.</li>
+              앱이 넣은 값이 <strong>항상 이깁니다.</strong> 앱이 0을 넣은 경우까지 그대로 살려 둡니다.</li>
             <li><strong>"오버헤드는요?"</strong><br>
-              bio당 조건부 필드 쓰기 한 번, fast path 할당 없음, IOPS·p99 차이 <strong>1% 미만.</strong></li>
+              bio 하나당 필드 하나 채우는 게 전부고, fast path에서 메모리도 안 잡습니다. IOPS·p99 차이 <strong>1% 미만.</strong></li>
           </ul>
         </div>
       
@@ -1713,31 +2050,31 @@
           <h3 style="color: var(--accent-amber);">논문이 답하지 않는 질문</h3>
           <ul style="font-size: 0.93rem;">
             <li><strong>"컨테이너가 재시작되면 cgroup이 바뀌는데 매핑은요?"</strong><br>
-              논문 범위 밖입니다. 오케스트레이터가 재적용해야 하며, <strong>운영 측면의 열린 문제</strong>입니다.</li>
+              논문 범위 밖입니다. 오케스트레이터가 다시 걸어 줘야 하고, <strong>운영 쪽에서 아직 안 풀린 문제</strong>입니다.</li>
             <li><strong>"왜 하필 {R,M}/{P,K}가 {R,K}/{P,M}보다 나쁜가요?"</strong><br>
-              1.80 대 1.58의 차이는 관측되었지만, <strong>펌웨어 내부를 볼 수 없어 원인을 규명하지 못했다</strong>고 논문이 명시합니다.</li>
+              1.80과 1.58이라는 차이는 봤는데, <strong>펌웨어 안을 못 봐서 원인은 못 밝혔다</strong>고 논문에 그대로 적혀 있습니다.</li>
             <li><strong>"다른 벤더 SSD에서도 같나요?"</strong><br>
-              단일 디바이스·단일 펌웨어 결과입니다. <strong>일반화는 검증되지 않았습니다.</strong></li>
+              장비 한 대, 펌웨어 하나에서 나온 결과입니다. <strong>다른 데서도 그런지는 확인 안 했습니다.</strong> 실제로 WARP를 보면 벤더별 편차가 꽤 큽니다.</li>
             <li><strong>"수년 단위 마모에서도 유지되나요?"</strong><br>
-              가장 긴 실험이 12시간입니다. 논문이 스스로 한계로 적어 둔 항목입니다.</li>
+              제일 긴 실험이 12시간입니다. 논문에도 한계로 적혀 있습니다.</li>
             <li><strong>"읽기가 섞이면요?"</strong><br>
-              평가 워크로드가 모두 쓰기 집약입니다. WAF는 쓰기 수명에만 좌우되므로 의도된 선택이지만,
-              <strong>읽기 거동은 측정하지 않았습니다.</strong></li>
+              평가 워크로드가 전부 쓰기 위주입니다. WAF는 쓰기 수명에만 좌우되니 일부러 그렇게 잡은 건데,
+              <strong>읽기 쪽은 아예 안 쟀습니다.</strong></li>
           </ul>
           <div style="margin-top: 0.7rem; padding: 0.7rem 0.85rem; background: rgba(251, 191, 36, 0.1); border-left: 4px solid var(--accent-amber); border-radius: 4px; font-size: 0.9rem;">
-            모르는 것을 "모른다"고 답하는 편이, 논문에 없는 답을 지어내는 것보다 언제나 낫습니다.
+            모르는 건 그냥 모른다고 답하는 게 낫습니다. 논문에 없는 답을 지어내는 것보다 훨씬.
           </div>
         </div>
       </div>
       <div class="notes">
-        오른쪽 칸은 방어가 아니라 정직함의 목록이다. 그대로 읽어도 좋다.
+        오른쪽은 변명하려고 만든 게 아니다. 모르는 건 모른다고 하면 된다.
       </div>
     </div>
-    <!-- Slide 21 -->
-    <div class="slide" id="slide-21">
+    <!-- Slide 26 -->
+    <div class="slide" id="slide-26">
       <div class="slide-header">
         <h2>부록 B. 재현을 위한 설정<span class="appendix-badge">APPENDIX</span></h2>
-        <div class="slide-subtitle">워크로드 구성과 각 단계의 파라미터</div>
+        <div class="slide-subtitle">워크로드 구성과 단계별 파라미터입니다</div>
       </div>
       <div class="slide-body grid-2">
         <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
@@ -1755,8 +2092,8 @@
               </tbody>
             </table>
             <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.6rem;">
-              스톡 이미지를 그대로 사용하고, 배치는 오직 각 컨테이너의 cgroup을 스트림에 매핑하는 것으로만 지정합니다.
-              RocksDB는 direct I/O를 꺼서 flush와 컴팩션 쓰기가 페이지 캐시를 지나가게 했습니다.
+              공식 이미지를 그대로 쓰고, 배치는 컨테이너의 cgroup을 스트림에 매핑하는 것만으로 지정합니다.
+              RocksDB는 direct I/O를 꺼서 flush와 컴팩션 쓰기가 페이지 캐시를 지나가게 만들었습니다.
             </p>
           </div>
         </div>
@@ -1768,7 +2105,7 @@
               <li><strong>4 KB 순차 쓰기</strong>, <code>libaio</code>, <code>iodepth=256</code></li>
               <li>raw 경로는 direct, 파일시스템 경로는 buffered</li>
               <li>실행당 <strong>2시간</strong>, 사전에 <strong>128 KB 순차 쓰기로 프리컨디셔닝</strong></li>
-              <li>수명은 <strong>영역 크기</strong>로 만듭니다. hot cgroup은 좁은 영역을 계속 덮어쓰고(빠른 재활용), cold cgroup은 넓은 영역을 훑습니다(느린 재활용).</li>
+              <li>수명 차이는 <strong>영역 크기</strong>로 만듭니다. hot cgroup은 좁은 영역을 계속 덮어쓰고(빨리 재활용), cold cgroup은 넓은 영역을 훑습니다(늦게 재활용).</li>
               <li><strong>Stage 1:</strong> hot 5% / cold 95%의 2테넌트</li>
               <li><strong>Stage 2:</strong> cgroup 14개 — hot 7개(1%) / cold 7개(13%)</li>
             </ul>
@@ -1778,13 +2115,13 @@
             <ul style="font-size: 0.93rem;">
               <li><strong>ext4:</strong> <code>^flex_bg</code>, <code>commit=1</code>, 예약 블록 없음</li>
               <li><strong>xfs:</strong> 10 MB 로그, <code>maxpct=100</code>, <code>wsync</code></li>
-              <li>목적은 성능 최적화가 아니라 <strong>저널링을 계속 활성 상태로 유지</strong>해 메타데이터 경로를 자극하는 것입니다.</li>
+              <li>성능을 뽑으려는 게 아니라, <strong>저널링을 계속 돌게 해서</strong> 메타데이터 경로가 실제로 일하게 만들려는 설정입니다.</li>
             </ul>
           </div>
         </div>
       </div>
       <div class="notes">
-        "수명을 영역 크기로 만든다"는 아이디어가 이 실험 설계의 핵심 트릭이다. 합성 워크로드로 수명 차이를 만들어내는 깔끔한 방법.
+        "수명 차이를 영역 크기로 만든다"가 이 실험 설계의 핵심이다. 합성 워크로드로 수명 차이를 만드는 깔끔한 방법이라 기억해 둘 만하다.
       </div>
     </div>
 </div>
@@ -1795,7 +2132,7 @@
       <div class="progress-bar-container" style="width: 400px; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; overflow: hidden; margin: 0;">
         <div class="progress-bar-fill" id="progressBar" style="height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); width: 0%; transition: width 0.3s ease;"></div>
       </div>
-      <div class="slide-counter" id="slideCounter" style="font-family: var(--font-code); color: #94a3b8; font-size: 0.95rem; min-width: 60px; text-align: right;">1 / 21</div>
+      <div class="slide-counter" id="slideCounter" style="font-family: var(--font-code); color: #94a3b8; font-size: 0.95rem; min-width: 60px; text-align: right;">1 / 26</div>
     </div>
     <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">다음 (Right) →</button>
   </footer>

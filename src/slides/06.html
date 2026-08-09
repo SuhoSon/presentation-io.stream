@@ -18,38 +18,38 @@
         <td><strong>애플리케이션</strong></td>
         <td>CacheLib 등<br><span style="color: var(--text-muted); font-size: 0.85rem;">io_uring passthrough</span></td>
         <td style="color: var(--accent-red); font-weight: 700;">필요</td>
-        <td style="color: var(--accent-red); font-weight: 700;">미도달</td>
-        <td>상용 앱의 I/O 엔진을 직접 고쳐야 합니다. 대부분의 배포 환경에는 적용할 수 없습니다.</td>
+        <td style="color: var(--accent-red); font-weight: 700;">안 닿음</td>
+        <td>앱의 I/O 엔진을 직접 뜯어고쳐야 합니다. 남이 만든 바이너리를 돌리는 대부분의 현장에서는 쓸 수 없습니다.</td>
       </tr>
       <tr class="group-start">
         <td><strong>파일시스템</strong></td>
         <td>FStream <span style="color: var(--text-muted); font-size: 0.85rem;">(파일 속성)</span><br>F2FS <span style="color: var(--text-muted); font-size: 0.85rem;">(세그먼트 온도)</span></td>
         <td style="color: var(--accent-green); font-weight: 700;">불필요</td>
-        <td style="color: var(--accent-green); font-weight: 700;">도달</td>
-        <td>분류가 너무 거칠 수 있습니다. WARP의 측정에 따르면 F2FS는 Fileserver 사용자 데이터 쓰기의
-          <strong style="color: var(--accent-red);">99%를 단일 WARM RUH</strong>로 보냈습니다.</td>
+        <td style="color: var(--accent-green); font-weight: 700;">닿음</td>
+        <td>분류가 너무 거칠 수 있습니다. WARP가 재 보니 F2FS는 Fileserver의 사용자 데이터 쓰기 가운데
+          <strong style="color: var(--accent-red);">99%를 WARM 하나</strong>로 보내고 있었습니다.</td>
       </tr>
       <tr class="group-start">
         <td><strong>커널 추론</strong></td>
         <td>AutoStream <span style="color: var(--text-muted); font-size: 0.85rem;">(LBA 패턴)</span><br>PCStream <span style="color: var(--text-muted); font-size: 0.85rem;">(발행 컨텍스트)</span></td>
         <td style="color: var(--accent-green); font-weight: 700;">불필요</td>
-        <td style="color: var(--accent-green); font-weight: 700;">도달</td>
-        <td>인터페이스 변경은 피했지만, 그룹을 <strong>복원</strong>하려고 per-I/O 모니터링 비용을 지불합니다.
-          운영자가 테넌트 성격을 알아도 <strong>명시적으로 개입할 방법이 없습니다.</strong></td>
+        <td style="color: var(--accent-green); font-weight: 700;">닿음</td>
+        <td>인터페이스를 안 바꾼 대신, 이미 있는 그룹을 <strong>되짚어 알아내려고</strong> per-I/O 모니터링 비용을 냅니다.
+          운영자가 테넌트 성격을 알고 있어도 <strong>끼어들 방법이 없습니다.</strong></td>
       </tr>
       <tr class="group-start highlight-row">
         <td><strong>cgroup (운영자)</strong></td>
         <td><strong>io.stream</strong> <span style="font-size: 0.85rem;">(이 논문)</span></td>
         <td style="font-weight: 700;">불필요</td>
-        <td style="font-weight: 700;">도달</td>
-        <td>커널이 그룹을 추론할 필요가 없습니다. <strong>cgroup이 이미 그룹이고, 운영자가 이미 그 의도를 알고 있습니다.</strong></td>
+        <td style="font-weight: 700;">닿음</td>
+        <td>커널이 그룹을 알아낼 필요가 없습니다. <strong>cgroup이 이미 그룹이고, 그 의도는 운영자가 이미 알고 있습니다.</strong></td>
       </tr>
     </tbody>
   </table>
   <div class="highlight-box" style="margin-top: 0.3rem; padding: 1rem 1.3rem;">
     <p style="font-size: 1.02rem;">
-      AutoStream은 <strong>관측</strong>으로 의도를 추측하지만, cgroup에는 <strong>운영자의 의도가 이미 명시</strong>되어 있습니다.
-      그래서 이 논문의 과제는 "의도를 추론하는 법"이 아니라 <strong>"이미 있는 의도를 어떻게 전달할 것인가"</strong>가 됩니다.
+      AutoStream은 <strong>관측으로 의도를 추측</strong>합니다. 반면 cgroup에는 <strong>운영자의 의도가 이미 적혀</strong> 있습니다.
+      그래서 이 논문의 숙제는 "의도를 어떻게 알아낼까"가 아니라 <strong>"이미 있는 의도를 어떻게 전달할까"</strong>가 됩니다.
     </p>
   </div>
 </div>

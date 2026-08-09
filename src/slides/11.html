@@ -19,18 +19,18 @@
   </div>
 
   <div class="card" style="border-color: rgba(52, 211, 153, 0.4);">
-    <h3 style="color: var(--accent-green);">리뷰어가 물고 늘어질 구멍을 미리 막는 법</h3>
+    <h3 style="color: var(--accent-green);">리뷰어가 파고들 구멍을 미리 막는 법</h3>
     <ul style="font-size: 0.95rem;">
-      <li><strong>매 실행 전 <code>nvme format</code> 후 꽉 채웁니다.</strong><br>
-        <span style="color: var(--text-muted);">갓 포맷한 미디어에서는 WAF가 1 근처라 차이가 안 보입니다. 채워야 덮어쓰기가 즉시 GC를 돌립니다.</span></li>
+      <li><strong>실행할 때마다 <code>nvme format</code> 하고 용량을 꽉 채웁니다.</strong><br>
+        <span style="color: var(--text-muted);">갓 포맷한 상태에서는 WAF가 1 근처라 아무 차이도 안 보입니다. 꽉 채워야 덮어쓰기가 바로 GC를 부릅니다.</span></li>
       <li><strong><code>nodiscard</code>로 실행합니다.</strong><br>
-        <span style="color: var(--text-muted);">TRIM이 끼면 회수가 배치 덕인지 호스트 힌트 덕인지 구분할 수 없습니다.</span></li>
-      <li><strong>파일시스템을 일부러 몰아붙입니다.</strong> <span style="color: var(--text-muted);">(ext4 <code>commit=1</code> 등)
-        jbd2를 계속 돌게 해서 메타데이터 경로를 실제로 자극하려는 것입니다.</span></li>
+        <span style="color: var(--text-muted);">TRIM이 끼면 회수가 배치 덕분인지 호스트가 준 힌트 덕분인지 구분할 수 없습니다.</span></li>
+      <li><strong>파일시스템을 일부러 괴롭힙니다.</strong> <span style="color: var(--text-muted);">(ext4 <code>commit=1</code> 등)
+        jbd2를 쉬지 않고 돌려서 메타데이터 경로가 실제로 일하게 만들려는 것입니다.</span></li>
       <li><strong>WAF는 호스트가 아니라 디바이스가 잰 값입니다.</strong><br>
         <span style="color: var(--text-muted);">SMART 로그 02h와 OCP 로그 C0h의 델타를 분당 샘플링해, 정상상태 구간의 비율로 계산합니다.</span></li>
-      <li><strong>실행 간 편차와 실행 내 편차를 둘 다 적습니다.</strong><br>
-        <span style="color: var(--text-muted);">"GC 피크를 찍은 게 아니라 안정된 고원"임을 증명하는 장치입니다.</span></li>
+      <li><strong>실행끼리의 편차와 한 실행 안의 편차를 둘 다 적습니다.</strong><br>
+        <span style="color: var(--text-muted);">"운 좋게 GC 최고점을 찍은 게 아니라 안정된 구간"이라는 걸 보이기 위한 장치입니다.</span></li>
     </ul>
   </div>
 </div>

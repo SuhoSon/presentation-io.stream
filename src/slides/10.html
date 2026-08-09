@@ -28,24 +28,24 @@
 
   <div style="display: flex; flex-direction: column; gap: 1rem;">
     <div class="card" style="border-color: rgba(52, 211, 153, 0.45);">
-      <h3>넘칠 때의 기본 정책: 해시가 아니라 <em>fallback</em></h3>
+      <h3>넘칠 때의 기본 정책: 흩뿌리기가 아니라 <em>fallback</em></h3>
       <p style="font-size: 0.97rem;">
-        매핑되지 않았거나 자리가 없는 cgroup은 <strong>디바이스 기본으로 떨어질 뿐</strong>,
+        매핑이 없거나 자리가 모자란 cgroup은 <strong>디바이스 기본 스트림으로 갈 뿐</strong>,
         <strong style="color: var(--accent-green);">절대 다른 테넌트의 스트림으로 가지 않습니다.</strong>
       </p>
       <p style="font-size: 0.97rem; margin-top: 0.7rem;">
-        그래서 <strong>순진하게 도입해도 손해를 보지 않습니다.</strong>
-        모르면 건드리지 않는 쪽이 기본값입니다.
+        그래서 <strong>깊이 고민하지 않고 켜도 최소한 손해는 안 봅니다.</strong>
+        모르면 손대지 않는 쪽이 기본값이니까요.
       </p>
     </div>
     <div class="card" style="border-color: rgba(248, 113, 113, 0.45);">
       <h3 style="color: var(--accent-red);">해시로 흩뿌렸다면</h3>
       <p style="font-size: 0.97rem;">
-        수명을 무시한 병합은 <strong>hot과 cold를 한 회수 단위에 같이 앉힙니다.</strong>
+        수명을 따지지 않고 묶으면 <strong>hot과 cold가 한 회수 단위에 같이 앉습니다.</strong>
         그 결과는 다음 장에서 숫자로 나오는데, <strong style="color: var(--accent-red);">FDP를 아예 안 쓴 것보다 나쁩니다.</strong>
       </p>
       <p style="font-size: 0.97rem; margin-top: 0.7rem; color: var(--text-muted);">
-        스트림이 희소한 것은 미뤄둘 한계가 아니라, io.stream이 여는 <strong>정책 설계 공간</strong>입니다.
+        스트림이 모자란 건 나중으로 미룰 한계가 아니라, io.stream이 열어 놓은 <strong>정책 설계 공간</strong>입니다.
         커널은 어떤 정책이든 필요로 하는 cgroup 계층을 이미 알고 있습니다.
       </p>
     </div>

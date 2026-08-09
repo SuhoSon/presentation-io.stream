@@ -1,27 +1,51 @@
 <div class="slide-header">
-  <h2>Q &amp; A</h2>
-  <div class="slide-subtitle">경청해 주셔서 감사합니다</div>
+  <h2>여기서부터는 FDP 자체 이야기<span class="appendix-badge">PART 2</span></h2>
+  <div class="slide-subtitle">규격은 하나인데 장비마다 결과가 다릅니다. 이 차이를 모르면 FDP로 실험을 설계할 수 없습니다</div>
 </div>
-<div class="slide-body" style="justify-content: center;">
-  <div class="grid-2">
-    <div class="card" style="border-color: rgba(56, 189, 248, 0.5);">
-      <h3>오늘 다룬 세 질문</h3>
-      <ul style="font-size: 1rem;">
-        <li><strong>Q1.</strong> FDP만 켜면? → 아무 일도 없고, 오히려 조금 나빠집니다.</li>
-        <li><strong>Q2.</strong> 스트림을 많이 주면? → 전부 쓴 쪽이 꼴찌였습니다(2.36).</li>
-        <li><strong>Q3.</strong> 실제 앱에서도? → 됩니다. 단 <strong>묶는 기준이 전부</strong>입니다.</li>
-      </ul>
+<div class="slide-body grid-2">
+  <div style="display: flex; flex-direction: column; gap: 0.6rem; min-height: 0;">
+    <div class="wafchart">
+      <div class="wafbar">
+        <span class="wafnum">2.00</span>
+        <div class="wafcol" data-tone="ok" style="height: 34%;"></div>
+        <span class="waflabel"><b>SSD A</b><em>7.68 TB · U.3</em></span>
+      </div>
+      <div class="wafbar">
+        <span class="wafnum">3.51</span>
+        <div class="wafcol" data-tone="bad" style="height: 87%;"></div>
+        <span class="waflabel"><b>SSD B</b><em>3.84 TB · E1.S</em></span>
+      </div>
     </div>
-    <div class="card" style="border-color: rgba(129, 140, 248, 0.5);">
-      <h3>더 파고들 거리</h3>
-      <ul style="font-size: 1rem;">
-        <li>논문: <code>DOI 10.1145/3837053.3837343</code></li>
-        <li>커널 쪽 배경: cgroup v2 I/O 컨트롤러, cgroup writeback, 블록 계층 write stream</li>
-        <li>부록에 실험 설정과 예상 질문을 붙여 두었습니다 <span style="color: var(--text-muted);">(→ 다음 두 장)</span></li>
+    <div class="axis-note">
+      같은 워크로드(128 KB 완전 랜덤 쓰기, 스트림 하나), 같은 PCIe Gen5 · NVMe 2.1 · RUH 8개.
+      그런데 정상상태 WAF는 <strong>1.75배</strong> 차이 납니다. <span style="color: var(--text-muted);">(WARP, FAST '26)</span>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+    <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(251, 191, 36, 0.45);">
+      <h3 style="font-size: 1.1rem; color: var(--accent-amber);">벤더가 정해 놓고 알려주지 않는 네 가지</h3>
+      <ul style="font-size: 0.94rem;">
+        <li><strong>RU 크기</strong> — 한 번에 회수되는 덩어리의 크기 (보통 NAND 슈퍼블록)</li>
+        <li><strong>OP 비율</strong> — 내부에 숨겨 둔 여유 공간이 몇 %인가</li>
+        <li><strong>RUH 개수</strong> — 호스트가 쓸 수 있는 스트림이 몇 개인가</li>
+        <li><strong>RUH 격리 방식</strong> — <strong style="color: var(--accent-amber);">II냐 PI냐</strong> (다음 장)</li>
       </ul>
+      <p style="font-size: 0.92rem; margin-top: 0.6rem; color: var(--text-muted);">
+        전부 펌웨어에 박혀 있고, 호스트에서는 확인할 방법이 없습니다.
+      </p>
+    </div>
+    <div class="card" style="padding: 1.1rem 1.3rem;">
+      <h3 style="font-size: 1.1rem;">호환성을 얻는 대신 포기한 것</h3>
+      <p style="font-size: 0.94rem;">
+        ZNS와 Open-Channel은 회수까지 호스트가 하게 했습니다. FDP는 반대로 <strong>GC를 통째로 장비에 남겨 뒀습니다.</strong>
+        덕분에 평범한 블록 디바이스로 남았지만, 대신 <strong style="color: var(--accent-red);">힌트를 어떻게 받아들일지는 전적으로 펌웨어 마음</strong>입니다.
+      </p>
     </div>
   </div>
 </div>
+<div class="takeaway" data-tone="amber">💡 "FDP 지원"이라는 스펙은 인터페이스만 약속한다. WAF가 얼마나 내려갈지는 약속하지 않는다.</div>
 <div class="notes">
-  질문이 없으면 부록 A의 첫 질문("cgroup 안에 수명이 섞이면 어떻게 하나")을 스스로 꺼내 대화를 연다.
+  여기서부터는 io.stream 논문 밖이다. 앞은 "호스트가 무엇을 묶을까"였고, 이제부터는 "장비가 그 묶음을 어떻게 다루는가"다.
+  후배들이 FDP로 자기 실험을 시작하려면 이쪽을 먼저 알아야 한다.
 </div>
