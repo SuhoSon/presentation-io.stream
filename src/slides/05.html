@@ -1,20 +1,29 @@
 <div class="slide-header">
-        <h2>기존 FDP 도입 방식의 구조적 한계 및 실증 사례</h2>
+        <h2>Related Work: 기존 FDP 도입 방식의 구조적 한계 및 실증 사례</h2>
         <div class="slide-subtitle">애플리케이션 및 파일시스템 계층 기반 제어의 문제점</div>
       </div>
       <div class="slide-body grid-2">
-        <div class="card">
+        <div class="card" style="margin-bottom: 1rem;">
           <h3>1. Application-Driven 모델</h3>
           <ul>
-            <li style="margin-bottom: 0.8rem;"><strong>엔지니어링 비용:</strong> 상용 애플리케이션의 소스코드 직접 수정 필요.</li>
-            <li><strong>컨텍스트 유실:</strong> Buffered I/O를 거치며 커널 레벨에서 I/O 태그 정보가 유실됨.</li>
+            <li style="margin-bottom: 0.5rem;"><strong>사례:</strong> <code>CacheLib</code> 등 (io_uring passthrough 사용)</li>
+            <li style="margin-bottom: 0.5rem;"><strong>엔지니어링 비용:</strong> 상용 애플리케이션의 I/O 엔진(소스코드) 직접 수정 필요.</li>
+            <li><strong>컨텍스트 유실:</strong> Buffered I/O 및 Writeback 경로를 지원하지 못해 범용성 한계.</li>
           </ul>
         </div>
-        <div class="card">
-          <h3>2. FS-Driven 모델 (WARP 연구 실증)</h3>
+        <div class="card" style="margin-bottom: 1rem;">
+          <h3>2. FS-Driven 모델</h3>
           <ul>
-            <li style="margin-bottom: 0.8rem;"><strong>휴리스틱 예측의 불확실성:</strong> 파일 크기/확장자만으로는 실제 런타임 생명 주기를 정확히 추론할 수 없음.</li>
-            <li><strong>데이터 편향:</strong> F2FS에 제어를 일임하여 엔터프라이즈 워크로드를 구동한 결과, <strong>전체 데이터의 99%가 단일 WARM 스트림으로 집중</strong>되는 현상이 관찰됨(FAST '26). 즉, 다중 RUH 분리 효과가 완전히 상실됨.</li>
+            <li style="margin-bottom: 0.5rem;"><strong>사례:</strong> <code>FStream</code> (파일 속성 기반), <code>F2FS</code> (세그먼트 온도 기반)</li>
+            <li style="margin-bottom: 0.5rem;"><strong>휴리스틱 예측의 불확실성:</strong> 파일 속성만으로는 실제 런타임 생명 주기를 정확히 추론하기 어려움.</li>
+            <li><strong>데이터 편향 (WARP 연구):</strong> F2FS에 제어를 일임한 결과, <strong>전체 데이터의 99%가 단일 WARM RUH로 집중</strong>되어 스트림 분리 효과가 상실됨.</li>
+          </ul>
+        </div>
+        <div class="card" style="grid-column: span 2; border-color: rgba(56, 189, 248, 0.4);">
+          <h3>3. Kernel-Driven 모델 (LBA / Program Context 기반)</h3>
+          <ul>
+            <li><strong>사례:</strong> <code>AutoStream</code> (LBA 패턴 추론), <code>PCStream</code> (Issuing Program Context 기반)</li>
+            <li><strong>한계점:</strong> 애플리케이션 수정은 피했으나, 커널 내에서 지속적인 모니터링 연산 및 그룹 재구성 비용(Overhead) 발생. <strong>io.stream</strong>은 cgroup이 이미 제공하는 그룹화 정보를 재사용하여 이 비용을 제거함.</li>
           </ul>
         </div>
       </div>
