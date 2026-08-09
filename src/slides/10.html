@@ -1,14 +1,33 @@
 <div class="slide-header">
-        <h2>결과 분석 1: WAF 최소화 및 시스템 응답성(Latency) 대폭 개선</h2>
-        <div class="slide-subtitle">백그라운드 미디어 간섭 제거를 통한 SSD 컨트롤러 성능 최적화</div>
+        <h2>Q1. "FDP만 켜면 되는 거 아냐?"</h2>
+        <div class="slide-subtitle">하드웨어 기능 활성화(FDP-default)와 파일시스템 튜닝의 실제 한계</div>
       </div>
-      <div class="slide-body">
-        <div style="width: 100%; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; border: 1px dashed rgba(255,255,255,0.2);">
-          <img src="stage1.png" alt="Evaluation Table from Paper" style="max-width: 100%; max-height: 250px; object-fit: contain;" />
+      <div class="slide-body grid-2">
+        <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+          <img src="stage1.png" style="max-width: 100%; object-fit: contain;" alt="Baseline Comparison Graph">
         </div>
-        <div class="card" style="margin-top: 1.5rem; border-color: rgba(56, 189, 248, 0.4);">
-          <p style="font-size: 1.05rem;">데이터 생명 주기에 맞춘 물리적 격리로 인하여 디바이스 내부의 무효 페이지 회수(GC) 오버헤드가 사실상 소멸되었습니다. 이로 인해 NAND
-            대역폭 손실이 억제되었을 뿐만 아니라, 펌웨어 단의 락(Lock) 경합 및 인터럽트 병목 현상이 해소되어 <strong>호스트 단 p99 Latency가 최대 93%까지 대폭
-              개선</strong>되는 결과를 도출했습니다.</p>
+        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+          <h3 style="margin-bottom: 1.2rem; color: #f87171;">하드웨어만 믿었을 때의 처참한 결과</h3>
+          <ul style="font-size: 1.2rem; line-height: 2.2;">
+            <li><strong>Raw Device (Filesystem 없음):</strong> 
+              <br><span style="color:#cbd5e1; font-size: 1.05rem;">No-FDP <strong style="color:#f87171">1.65</strong> &nbsp;→&nbsp; FDP-default <strong style="color:#f87171">1.65</strong> (차이 없음)</span>
+            </li>
+            <li><strong>ext4 적용 시:</strong> 
+              <br><span style="color:#cbd5e1; font-size: 1.05rem;">No-FDP <strong>1.50</strong> &nbsp;→&nbsp; FDP-default <strong style="color:#f87171">1.53</strong> (오히려 나빠짐)</span>
+            </li>
+            <li><strong>xfs 적용 시:</strong> 
+              <br><span style="color:#cbd5e1; font-size: 1.05rem;">No-FDP <strong>1.57</strong> &nbsp;→&nbsp; FDP-default <strong style="color:#f87171">1.61</strong> (오히려 나빠짐)</span>
+            </li>
+            <li><strong>Metadata-only 분리:</strong> 
+              <br><span style="color:#cbd5e1; font-size: 1.05rem;">FS 메타데이터만 떼어내도 WAF는 <strong style="color:#f87171">1.53</strong>에 머뭄. 메타데이터 분리가 마법의 탄환이 아님.</span>
+            </li>
+            <li style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+              <strong style="color: #34d399;">io.stream (Coherent):</strong> WAF <strong style="color: #10b981; font-size: 1.4rem;">1.00</strong> (수명 기반 격리 달성)
+            </li>
+          </ul>
         </div>
+      </div>
+
+      <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #38bdf8; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #38bdf8;">
+        💡 교훈: FDP는 켜는 게 아니라 "쓰는 것"이다. 베이스라인(No-FDP) 선택과 분석이 논문의 절반이다.
       </div>

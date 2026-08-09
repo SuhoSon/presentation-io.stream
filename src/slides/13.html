@@ -1,16 +1,31 @@
 <div class="slide-header">
-        <h2>향후 연구 및 발전 과제 (Future Directions)</h2>
-        <div class="slide-subtitle">자율형 동적 스트림 프로비저닝 및 펌웨어 리소스 최적화 방향</div>
+        <h2>Q3. "진짜 워크로드에서도 통할까?"</h2>
+        <div class="slide-subtitle">4종 상용 애플리케이션 12시간 구동: 앱별 할당 vs 수명별 묶음 할당</div>
       </div>
       <div class="slide-body grid-2">
-        <div class="card">
-          <h3>런타임 온라인 학습(Online Learning) 기반 정책 자동화</h3>
-          <p>정적인 관리자 오버라이드 룰셋에서 탈피하여, 리눅스 I/O 스케줄러 계층이 런타임에 실시간으로 <strong>cgroup 단위의 쓰기 주파수 및 수명 주기를 샘플링하여 머신러닝 기법으로
-              스트림(RUH) 맵핑을 자율 조정</strong>하는 지능화 프레임워크 연구가 필요합니다.</p>
+        <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+          <img src="stage3.png" style="max-width: 100%; object-fit: contain;" alt="Real Workload Graph">
         </div>
-        <div class="card">
-          <h3>제한적 Effective OP 환경을 고려한 스트림 병합 스케줄링</h3>
-          <p>앞선 분석에서 규명했듯 다수의 물리 스트림 유지는 펌웨어 단의 공간 프로비저닝 비용(OP 확보 제약)을 동반합니다. <strong>최소 필수 RUH 집합을 선별 유지하고, 생명 주기가 유사한
-              마이너 테넌트(Minor Tenants)를 휴리스틱 기반으로 클러스터링(병합)</strong>하는 스토리지 자원 극대화 알고리즘의 개발이 요구됩니다.</p>
+        <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+          <h3 style="margin-bottom: 1.2rem; color: #38bdf8;">수명 기반 그룹핑(Grouping)의 실효성 증명</h3>
+          <ul style="font-size: 1.15rem; line-height: 2.2;">
+            <li><strong>기본 정책의 실패:</strong> 
+              <br><span style="color:#cbd5e1; font-size: 1.05rem;">FDP-default <strong style="color:#f87171">1.70</strong> / 1-stream <strong style="color:#f87171">1.70</strong> (단일 스트림으로는 개선 불가)</span>
+            </li>
+            <li><strong>Per-App 매핑 (낭비적 이상향):</strong> 
+              <br><span style="color:#cbd5e1; font-size: 1.05rem;">4개 앱 각각에 4개의 전용 스트림 할당 &nbsp;→&nbsp; WAF <strong style="color:#38bdf8">1.23</strong></span>
+            </li>
+            <li><strong style="color: #34d399;">Lifetime 매핑 (io.stream 제안):</strong> 
+              <br><span style="color:#cbd5e1; font-size: 1.05rem;">수명이 비슷한 앱끼리 묶어 2~3개 스트림만 사용 &nbsp;→&nbsp; WAF <strong style="color:#10b981; font-size: 1.3rem;">1.27</strong> (거의 유사함!)</span>
+            </li>
+            <li style="margin-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 0.8rem;">
+              <strong>Mixed 매핑 (잘못된 묶음):</strong> 수명이 다른 앱들을 강제로 섞음.
+              <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#f87171">1.58 / 1.80</strong> 폭주. 묶는 "기준"이 틀리면 재앙이 됨.</span>
+            </li>
+          </ul>
         </div>
+      </div>
+
+      <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #34d399; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #34d399;">
+        💡 교훈: 앱마다 스트림을 낭비할 필요 없다. "수명이 비슷하면 묶어도" 동등한 효과를 낸다.
       </div>

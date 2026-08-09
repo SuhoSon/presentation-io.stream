@@ -900,193 +900,203 @@
     <div class="slide" id="slide-9">
       <div class="slide-header">
               <h2>성능 평가(Evaluation) 환경 설정</h2>
-              <div class="slide-subtitle">최신 엔터프라이즈 FDP 규격 검증 플랫폼</div>
+              <div class="slide-subtitle">하드웨어 제원 및 5종의 대조군(Baselines) 정의</div>
             </div>
-            <div class="slide-body">
-              <div class="card" style="padding: 2.5rem;">
-                <ul style="font-size: 1.15rem; line-height: 2.2;">
+            <div class="slide-body grid-2">
+              <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
+                <h3 style="margin-bottom: 1.2rem; color: #38bdf8;">시스템 및 하드웨어 스펙</h3>
+                <ul style="font-size: 1.1rem; line-height: 2.0;">
+                  <li><strong>CPU / Memory:</strong> Intel Core i9-12900K / 64GB RAM</li>
+                  <li><strong>운영체제:</strong> Linux Kernel 7.0 (io.stream 패치 적용)</li>
                   <li><strong>스토리지 하드웨어:</strong> Samsung PM9D3a 4TB Datacenter FDP NVMe SSD</li>
-                  <li><strong>운영체제 스택:</strong> 커스텀 <code>io.stream</code> 패치가 적용된 Linux Kernel 7.0 환경</li>
-                  <li><strong>평가 대조군(Baselines):</strong>
-                    <ul style="margin-left: 2rem; margin-top: 0.5rem; line-height: 1.8;">
-                      <li><strong>No-FDP:</strong> Conventional SSD (disable FDP mode) (WAF: 1.65)</li>
-                      <li style="color: #f87171;"><strong>FDP-default:</strong> Enable FDP mode, but using only default RUH 0 (WAF: 1.65)</li>
-                      <li><strong>io.stream:</strong> 제안하는 cgroup 기반의 다중 스트림 데이터 격리 방식 (WAF: 1.00)</li>
-                    </ul>
+                  <li style="color: #f87171; font-weight: bold; margin-top: 0.5rem; background: rgba(248, 113, 113, 0.1); padding: 0.5rem; border-radius: 4px;">
+                    제약 사항: OP(Over-Provisioning) 7%, 총 RUH 8개 (메타데이터용 1개 + 데이터용 7개)
                   </li>
+                  <li style="margin-top: 1rem;"><strong>평가 기준점 (Ideal WAF):</strong> 쓰기 증폭의 이론적 하한선은 <strong>1.00</strong>입니다.</li>
                 </ul>
               </div>
+              
+              <div class="card" style="border-color: rgba(16, 185, 129, 0.4);">
+                <h3 style="margin-bottom: 1.2rem; color: #10b981;">평가 대조군(Baselines) 5종</h3>
+                <ul style="font-size: 1.05rem; line-height: 1.8;">
+                  <li><strong>1. No-FDP:</strong> 기존 일반 블록 디바이스 (FDP 비활성화)</li>
+                  <li><strong>2. FDP-default:</strong> FDP는 켰으나, 모든 I/O를 1개의 기본 스트림(RUH 0)에 던지는 상태</li>
+                  <li><strong>3. Oblivious:</strong> 가용 스트림 7개를 14개 그룹에 규칙 없이 무작정 쏟아붓는 정책 부재 상태</li>
+                  <li><strong>4. Blind:</strong> 2개 스트림에 데이터를 묶긴 묶었으나, 수명을 무시하고 임의(Random)로 매핑한 상태</li>
+                  <li><strong style="color: #34d399;">5. Coherent (io.stream):</strong> 테넌트별/수명별 명시적 정책에 따라 스트림을 정확히 분배한 이상적 상태</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #f87171; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #f87171;">
+              💡 교훈: 모든 평가는 1.0(Ideal)과 다양한 실패 시나리오(Blind, Oblivious) 사이의 위치를 확인하는 과정입니다.
             </div>
     </div>
     <!-- Slide 10 -->
     <div class="slide" id="slide-10">
       <div class="slide-header">
-              <h2>결과 분석 1: WAF 최소화 및 시스템 응답성(Latency) 대폭 개선</h2>
-              <div class="slide-subtitle">백그라운드 미디어 간섭 제거를 통한 SSD 컨트롤러 성능 최적화</div>
+              <h2>Q1. "FDP만 켜면 되는 거 아냐?"</h2>
+              <div class="slide-subtitle">하드웨어 기능 활성화(FDP-default)와 파일시스템 튜닝의 실제 한계</div>
             </div>
-            <div class="slide-body">
-              <div style="width: 100%; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 1rem; border: 1px dashed rgba(255,255,255,0.2);">
-                <img src="stage1.png" alt="Evaluation Table from Paper" style="max-width: 100%; max-height: 250px; object-fit: contain;" />
+            <div class="slide-body grid-2">
+              <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                <img src="stage1.png" style="max-width: 100%; object-fit: contain;" alt="Baseline Comparison Graph">
               </div>
-              <div class="card" style="margin-top: 1.5rem; border-color: rgba(56, 189, 248, 0.4);">
-                <p style="font-size: 1.05rem;">데이터 생명 주기에 맞춘 물리적 격리로 인하여 디바이스 내부의 무효 페이지 회수(GC) 오버헤드가 사실상 소멸되었습니다. 이로 인해 NAND
-                  대역폭 손실이 억제되었을 뿐만 아니라, 펌웨어 단의 락(Lock) 경합 및 인터럽트 병목 현상이 해소되어 <strong>호스트 단 p99 Latency가 최대 93%까지 대폭
-                    개선</strong>되는 결과를 도출했습니다.</p>
+              <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+                <h3 style="margin-bottom: 1.2rem; color: #f87171;">하드웨어만 믿었을 때의 처참한 결과</h3>
+                <ul style="font-size: 1.2rem; line-height: 2.2;">
+                  <li><strong>Raw Device (Filesystem 없음):</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">No-FDP <strong style="color:#f87171">1.65</strong> &nbsp;→&nbsp; FDP-default <strong style="color:#f87171">1.65</strong> (차이 없음)</span>
+                  </li>
+                  <li><strong>ext4 적용 시:</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">No-FDP <strong>1.50</strong> &nbsp;→&nbsp; FDP-default <strong style="color:#f87171">1.53</strong> (오히려 나빠짐)</span>
+                  </li>
+                  <li><strong>xfs 적용 시:</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">No-FDP <strong>1.57</strong> &nbsp;→&nbsp; FDP-default <strong style="color:#f87171">1.61</strong> (오히려 나빠짐)</span>
+                  </li>
+                  <li><strong>Metadata-only 분리:</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">FS 메타데이터만 떼어내도 WAF는 <strong style="color:#f87171">1.53</strong>에 머뭄. 메타데이터 분리가 마법의 탄환이 아님.</span>
+                  </li>
+                  <li style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <strong style="color: #34d399;">io.stream (Coherent):</strong> WAF <strong style="color: #10b981; font-size: 1.4rem;">1.00</strong> (수명 기반 격리 달성)
+                  </li>
+                </ul>
               </div>
+            </div>
+      
+            <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #38bdf8; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #38bdf8;">
+              💡 교훈: FDP는 켜는 게 아니라 "쓰는 것"이다. 베이스라인(No-FDP) 선택과 분석이 논문의 절반이다.
             </div>
     </div>
     <!-- Slide 11 -->
     <div class="slide" id="slide-11">
       <div class="slide-header">
-              <h2>결과 분석 2: 스트림 프로비저닝 규모와 분배 정확도의 상관관계</h2>
-              <div class="slide-subtitle">다중 활성 스트림(RUH) 환경에서의 Coherence(결합도) 의존성 검증</div>
+              <h2>Q2. "그럼 스트림 많이 주면 되겠네?"</h2>
+              <div class="slide-subtitle">스트림 프로비저닝 규모보다 '분배 정확도(Policy)'가 절대적인 이유</div>
             </div>
             <div class="slide-body grid-2">
-              <div class="chart-container" style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.2);">
-                <img src="stage2.png" alt="Evaluation Chart from Paper" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+              <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                <img src="stage2.png" style="max-width: 100%; object-fit: contain;" alt="Stream Mapping Comparison Graph">
               </div>
-              <div class="card">
-                <h3>스트림 분배 정책 별 WAF 관찰</h3>
-                <ul>
-                  <li><strong>Oblivious (무작위 균등 분배):</strong> 디바이스가 제공하는 최대 가용 스트림(7개)을 모두 프로비저닝하더라도, 워크로드 속성을 배제할 시 WAF는
-                    2.36으로 현격히 악화됩니다.</li>
-                  <li><strong>Coherent (데이터 결합도 중심):</strong> 전체 워크로드를 정확히 핫/콜드 속성으로 양분하여 <strong>최소한의 스트림(2개)</strong>으로만
-                    운용했을 때 <strong>최적 성능(WAF 1.0)</strong>이 관찰되었습니다.</li>
-                  <li><strong>결과 고찰:</strong> 향후 FDP 인프라 설계 시, 물리적 스트림 자원의 양적 확보보다 호스트 스페이스 차원의 정합성(Coherence) 높은 매핑 정책 도입이
-                    최우선시되어야 함을 시사합니다.</li>
+              <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+                <h3 style="margin-bottom: 1.2rem; color: #f59e0b;">정책 없는 자원 할당의 재앙</h3>
+                <ul style="font-size: 1.15rem; line-height: 2.2;">
+                  <li><strong>Oblivious (무작위 분산):</strong> 14개 cgroup에 7개 스트림 전량을 규칙 없이 매핑. 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#f87171">2.36</strong> 폭주. 스트림 1개짜리 FDP-default(1.62)보다 <strong>훨씬 나쁨</strong>.</span>
+                  </li>
+                  <li><strong>Blind (잘못된 분배):</strong> 수명을 무시하고 임의로 2개 스트림에 묶음. 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong>1.30</strong>. 성능을 깎아먹는 나쁜 매핑.</span>
+                  </li>
+                  <li style="margin-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 0.8rem;">
+                    <strong>Fallback (우아한 저하):</strong> 스트림이 모자라서 여러 cgroup이 하나의 기본 스트림(RUH 0)으로 떨어질 때.
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#34d399">1.07</strong> 방어. 모자라도 시스템이 붕괴하지 않음을 증명.</span>
+                  </li>
+                  <li><strong>Coherent (정합성):</strong> 수명에 맞춰 정확히 매핑 (단 2개 스트림만 사용).
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#10b981; font-size: 1.3rem;">1.00</strong> 달성.</span>
+                  </li>
                 </ul>
               </div>
+            </div>
+      
+            <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #facc15; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #facc15;">
+              💡 교훈: 자원을 더 준다고 좋아지지 않는다. 스트림 개수가 아니라 "매핑"이 변수다.
             </div>
     </div>
     <!-- Slide 12 -->
     <div class="slide" id="slide-12">
       <div class="slide-header">
-              <h2>결과 분석 3: 장기 상용 데이터베이스 벤치마크 (12h)</h2>
-              <div class="slide-subtitle">다중 테넌트(Multi-tenant) 클라우드 환경 내 지속 성능 방어력 입증</div>
+              <h2>왜 스트림을 아껴 써야 하는가? (OP Constraint)</h2>
+              <div class="slide-subtitle">스트림 낭비가 펌웨어 내부 가용 자원(Effective OP)에 미치는 치명적 영향</div>
             </div>
-            <div class="slide-body grid-2">
-              <div class="chart-container" style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.2);">
-                <img src="stage3.png" alt="Evaluation Line Chart from Paper" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+            <div class="slide-body grid-3">
+              <div class="card" style="display: flex; flex-direction: column;">
+                <h3 style="text-align:center; color: #94a3b8;">1. No-FDP (글로벌 풀)</h3>
+                <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+                  <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#60a5fa;">최대 (Max)</strong></span>
+                  <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#f87171;">수행 불가</strong></span>
+                </div>
+                <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">전체 Free Block을 단일 풀로 운용하여 디바이스 내 OP 비율이 극대화되나, 서로 다른 수명의 I/O가 섞여 필연적으로 WAF가 상승합니다.</p>
               </div>
-              <div class="card">
-                <h3>상용 RDBMS / NoSQL 복합 운용 시나리오</h3>
-                <ul>
-                  <li>코드 레벨의 FDP 수용이 불가능한 상용 솔루션(RocksDB, Postgres, Kafka, Mongo) 4종을 대상으로, cgroup 단위 격리를 통해 12시간 동안
-                    Continuous I/O 벤치마크를 수행했습니다.</li>
-                  <li>기존 혼재 방식(회색 점선)은 NAND 단편화 누적으로 인해 점진적으로 WAF 1.7에 수렴하였습니다.</li>
-                  <li>반면, io.stream 기반의 격리 적용 시(녹색 실선) 초기 상태의 <strong>WAF 1.2 마진을 워크로드 종료 시점까지 일정하게 유지</strong>하여 높은 시스템 안정성을
-                    확인하였습니다.</li>
-                </ul>
+      
+              <div class="card" style="border-top: 3px solid #f59e0b; display: flex; flex-direction: column;">
+                <h3 style="text-align:center; color: #f59e0b;">2. FDP (적절한 스트림 수)</h3>
+                <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+                  <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#fbbf24;">안정적 확보</strong></span>
+                  <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#34d399;">완벽 격리</strong></span>
+                </div>
+                <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">소수의 스트림(예: 2개)만 사용하여 수명이 비슷한 데이터끼리 묶으면(Coherent), 여유로운 Free Block(OP)을 유지하면서도 완벽한 격리가 가능합니다.</p>
               </div>
+      
+              <div class="card" style="border-top: 3px solid #ef4444; display: flex; flex-direction: column;">
+                <h3 style="text-align:center; color: #ef4444;">3. FDP (스트림 과다 사용)</h3>
+                <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+                  <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#f87171;">고갈 (Starvation)</strong></span>
+                  <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#f87171;">성능 붕괴</strong></span>
+                </div>
+                <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">각 스트림(RUH)은 <strong>독립된 활성 블록(Open Block)과 개별 GC 풀</strong>을 요구합니다. 많은 스트림을 열수록 펌웨어 내 통합 가용 OP가 조각나고 급감하여 시스템이 마비됩니다.</p>
+              </div>
+            </div>
+            
+            <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #a78bfa; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #a78bfa;">
+              💡 교훈: SSD의 빈 공간(OP) 제약 때문에 스트림은 "무조건 적게" 써야 한다. (그룹핑 필수)
             </div>
     </div>
     <!-- Slide 13 -->
     <div class="slide" id="slide-13">
       <div class="slide-header">
-              <h2>향후 연구 및 발전 과제 (Future Directions)</h2>
-              <div class="slide-subtitle">자율형 동적 스트림 프로비저닝 및 펌웨어 리소스 최적화 방향</div>
+              <h2>Q3. "진짜 워크로드에서도 통할까?"</h2>
+              <div class="slide-subtitle">4종 상용 애플리케이션 12시간 구동: 앱별 할당 vs 수명별 묶음 할당</div>
             </div>
             <div class="slide-body grid-2">
-              <div class="card">
-                <h3>런타임 온라인 학습(Online Learning) 기반 정책 자동화</h3>
-                <p>정적인 관리자 오버라이드 룰셋에서 탈피하여, 리눅스 I/O 스케줄러 계층이 런타임에 실시간으로 <strong>cgroup 단위의 쓰기 주파수 및 수명 주기를 샘플링하여 머신러닝 기법으로
-                    스트림(RUH) 맵핑을 자율 조정</strong>하는 지능화 프레임워크 연구가 필요합니다.</p>
+              <div style="display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                <img src="stage3.png" style="max-width: 100%; object-fit: contain;" alt="Real Workload Graph">
               </div>
-              <div class="card">
-                <h3>제한적 Effective OP 환경을 고려한 스트림 병합 스케줄링</h3>
-                <p>앞선 분석에서 규명했듯 다수의 물리 스트림 유지는 펌웨어 단의 공간 프로비저닝 비용(OP 확보 제약)을 동반합니다. <strong>최소 필수 RUH 집합을 선별 유지하고, 생명 주기가 유사한
-                    마이너 테넌트(Minor Tenants)를 휴리스틱 기반으로 클러스터링(병합)</strong>하는 스토리지 자원 극대화 알고리즘의 개발이 요구됩니다.</p>
+              <div class="card" style="display: flex; flex-direction: column; justify-content: center;">
+                <h3 style="margin-bottom: 1.2rem; color: #38bdf8;">수명 기반 그룹핑(Grouping)의 실효성 증명</h3>
+                <ul style="font-size: 1.15rem; line-height: 2.2;">
+                  <li><strong>기본 정책의 실패:</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">FDP-default <strong style="color:#f87171">1.70</strong> / 1-stream <strong style="color:#f87171">1.70</strong> (단일 스트림으로는 개선 불가)</span>
+                  </li>
+                  <li><strong>Per-App 매핑 (낭비적 이상향):</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">4개 앱 각각에 4개의 전용 스트림 할당 &nbsp;→&nbsp; WAF <strong style="color:#38bdf8">1.23</strong></span>
+                  </li>
+                  <li><strong style="color: #34d399;">Lifetime 매핑 (io.stream 제안):</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">수명이 비슷한 앱끼리 묶어 2~3개 스트림만 사용 &nbsp;→&nbsp; WAF <strong style="color:#10b981; font-size: 1.3rem;">1.27</strong> (거의 유사함!)</span>
+                  </li>
+                  <li style="margin-top: 0.8rem; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 0.8rem;">
+                    <strong>Mixed 매핑 (잘못된 묶음):</strong> 수명이 다른 앱들을 강제로 섞음.
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">WAF <strong style="color:#f87171">1.58 / 1.80</strong> 폭주. 묶는 "기준"이 틀리면 재앙이 됨.</span>
+                  </li>
+                </ul>
               </div>
+            </div>
+      
+            <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #34d399; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #34d399;">
+              💡 교훈: 앱마다 스트림을 낭비할 필요 없다. "수명이 비슷하면 묶어도" 동등한 효과를 낸다.
             </div>
     </div>
     <!-- Slide 14 -->
     <div class="slide" id="slide-14">
       <div class="slide-header">
-              <h2>가용 공간(OP)과 데이터 격리 간의 상관관계</h2>
-              <div class="slide-subtitle">강력한 격리 수준(Isolation Level)은 디바이스 Effective OP 감소를 수반함</div>
+              <h2>안 되는 것 / 아직 모르는 것 (Limitations & Open Questions)</h2>
+              <div class="slide-subtitle">본 논문의 한계점과 추후 연구가 필요한 미해결 과제들</div>
             </div>
             <div class="slide-body">
-              <div class="card" style="margin-bottom: 1rem; padding: 1rem 1.5rem;">
-                <h3 style="margin-bottom: 1.5rem; font-size: 1.1rem; text-align: center;">스트림 분리 수준에 따른 가용 공간(Effective OP) 소모 및 GC 임계점 도달 모식도</h3>
-                <div style="position: relative; padding-top: 10px; padding-bottom: 10px;">
-                  <!-- Threshold Line -->
-                  <div style="position: absolute; right: 18%; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 10;"></div>
-                  <div style="position: absolute; right: 18%; top: -15px; transform: translateX(50%); color: #ef4444; font-size: 0.85rem; font-weight: bold; background: var(--card-bg); padding: 0 4px; border-radius: 4px; border: 1px solid #ef4444;">GC Trigger Threshold (최소 Free Block)</div>
-                  
-                  <!-- Conventional -->
-                  <div style="margin-bottom: 1.2rem;">
-                    <div style="font-size: 0.85rem; margin-bottom: 4px; color: #cbd5e1; font-weight: 600;">1. Conventional (단일 스트림)</div>
-                    <div style="display: flex; height: 28px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);">
-                      <div style="width: 10%; background: #38bdf8; display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #082f49; font-weight: bold;" title="Open RUH">Open (1)</div>
-                      <div style="width: 10%; background: #f59e0b; display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #451a03; font-weight: bold;" title="GC Block">GC (1)</div>
-                      <div style="width: 80%; background: #10b981; display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #022c22; font-weight: bold;" title="Free Blocks">여유로운 Free Blocks (Effective OP 최대)</div>
-                    </div>
-                  </div>
-                  
-                  <!-- Initially Isolated -->
-                  <div style="margin-bottom: 1.2rem;">
-                    <div style="font-size: 0.85rem; margin-bottom: 4px; color: #cbd5e1; font-weight: 600;">2. Initially Isolated (예: 4개 스트림)</div>
-                    <div style="display: flex; height: 28px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);">
-                      <div style="width: 40%; background: #38bdf8; display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #082f49; font-weight: bold;">Open (4)</div>
-                      <div style="width: 10%; background: #f59e0b; display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #451a03; font-weight: bold;">GC (1)</div>
-                      <div style="width: 50%; background: #10b981; display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #022c22; font-weight: bold;">Free Blocks 감소</div>
-                    </div>
-                  </div>
-                  
-                  <!-- Persistently Isolated -->
-                  <div>
-                    <div style="font-size: 0.85rem; margin-bottom: 4px; color: #cbd5e1; font-weight: 600;">3. Persistently Isolated (예: 4개 스트림 완벽 격리)</div>
-                    <div style="display: flex; height: 28px; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);">
-                      <div style="width: 40%; background: #38bdf8; display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #082f49; font-weight: bold;">Open (4)</div>
-                      <div style="width: 40%; background: #f59e0b; display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #451a03; font-weight: bold;">독립 GC 풀 (4) 프로비저닝 (OP 낭비 극심)</div>
-                      <div style="width: 20%; background: rgba(239,68,68,0.2); display: flex; align-items:center; justify-content:center; font-size: 0.75rem; color: #fca5a5; font-weight: bold; border: 1px dashed #ef4444; z-index: 1;">임계점 터치 임박!</div>
-                    </div>
-                  </div>
-                  
-                </div>
-              </div>
-              <div class="grid-3" style="gap: 1.2rem;">
-                <div class="card" style="display: flex; flex-direction: column;">
-                  <h3 style="text-align:center;">1. Conventional SSD</h3>
-                  <div style="margin: 0.8rem 0; font-size: 0.95rem;">
-                    <span
-                      style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective
-                      OP: <strong style="color:#60a5fa;">최대 (Max)</strong></span>
-                    <span
-                      style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터
-                      격리: <strong style="color:#f87171;">수행 불가</strong></span>
-                  </div>
-                  <p style="font-size:0.9rem; color:#cbd5e1;">전체 Free Block을 단일 글로벌 풀로 운용하여 디바이스 내 OP 비율이 극대화되나, I/O 워크로드 간
-                    데이터 혼재가 발생합니다.</p>
-                </div>
-      
-                <div class="card" style="border-top: 3px solid var(--accent-red); display: flex; flex-direction: column;">
-                  <h3 style="text-align:center;">2. Initially Isolated (FDP)</h3>
-                  <div style="margin: 0.8rem 0; font-size: 0.95rem;">
-                    <span
-                      style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective
-                      OP: <strong style="color:#fbbf24;">부분적 감소</strong></span>
-                    <span
-                      style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터
-                      격리: <strong style="color:#fbbf24;">초기 쓰기 시에만 유효</strong></span>
-                  </div>
-                  <p style="font-size:0.9rem; color:#cbd5e1;">초기 호스트 기록(Host Write) 시에만 논리적 스트림을 유지하며, 공간 최적화를 위해 런타임 GC 도중
-                    데이터를 병합합니다.</p>
-                </div>
-      
-                <div class="card" style="border-top: 3px solid var(--accent-green); display: flex; flex-direction: column;">
-                  <h3 style="text-align:center;">3. Persistently Isolated (FDP)</h3>
-                  <div style="margin: 0.8rem 0; font-size: 0.95rem;">
-                    <span
-                      style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective
-                      OP: <strong style="color:#f87171;">매우 제한적</strong></span>
-                    <span
-                      style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터
-                      격리: <strong style="color:#34d399;">GC 포함 완벽 격리</strong></span>
-                  </div>
-                  <p style="font-size:0.9rem; color:#cbd5e1;">각 스트림(RUH) 단위로 독립된 GC 풀을 프로비저닝합니다. 완벽한 생명 주기 분리가 달성되나, 펌웨어 내 통합
-                    가용 OP가 급감합니다.</p>
-                </div>
+              <div class="card" style="padding: 2.5rem; border-color: rgba(245, 158, 11, 0.4);">
+                <ul style="font-size: 1.15rem; line-height: 2.2;">
+                  <li><strong>cgroup 경계 ≠ 데이터 Lifetime:</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">단일 컨테이너(cgroup) 안에도 수명이 천차만별인 데이터가 혼재합니다. (예: RocksDB 내의 수명이 짧은 WAL과 긴 SSTable, Temp). <code>io.stream</code>의 매크로(Macro) 제어만으로는 애플리케이션 내부의 미세한 수명 차이를 찢어낼 수 없습니다.</span>
+                  </li>
+                  <li style="margin-top: 0.8rem;"><strong>방향 비대칭 현상의 원인 미규명:</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">잘못된 매핑 시 한쪽 방향(1.07)은 방어되나 반대 방향(3.43)은 심각하게 붕괴하는 현상이 발견되었으나, 펌웨어 내부 동작을 볼 수 없어 정확한 원인은 밝혀내지 못했습니다.</span>
+                  </li>
+                  <li style="margin-top: 0.8rem;"><strong>Tail Latency (p99) 개선의 근본 원인:</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">p99 지연시간이 93%나 개선되었으나, 이는 블랙박스 내의 관측(Observation) 결과일 뿐입니다. 정확히 어떤 FTL 큐가 해소되었는지는 아직 가설 단계에 머물러 있습니다.</span>
+                  </li>
+                  <li style="margin-top: 0.8rem;"><strong>실험 시간의 제약:</strong> 
+                    <br><span style="color:#cbd5e1; font-size: 1.05rem;">12시간의 상용 워크로드 평가는 유의미하지만, 수년에 달하는 SSD의 전체 라이프사이클 마모도를 대변하기엔 상대적으로 짧은 시간입니다.</span>
+                  </li>
+                </ul>
               </div>
             </div>
     </div>
@@ -1100,44 +1110,15 @@
               <div class="card" style="border-color: rgba(56, 189, 248, 0.5);">
                 <h3>주요 연구 성과 및 의의</h3>
                 <ul>
-                  <li><strong>Zero-Modification 호환성:</strong> 레거시 워크로드 및 범용 파일시스템 스택의 코드 변형을 배제하여 NVMe FDP 기술의 실무 진입 장벽을 완전히
-                    허물었습니다.</li>
-                  <li><strong>Operator-Driven 아키텍처:</strong> 시스템 운영자 관점의 cgroup 자원 경계를 물리 매체 영역(NAND Block)까지 1:1로 프로비저닝하는
-                    아키텍처를 제시했습니다.</li>
-                  <li><strong>이상적 성능 수렴:</strong> 커널 최적화를 통해 낭비 없는 대역폭 효율(WAF 1.0)과 데이터센터급 QoS 지연 요건을 충족시키는 성능 개선을 실증해냈습니다.
-                  </li>
+                  <li><strong>Zero-Modification 호환성:</strong> 레거시 워크로드 및 범용 파일시스템 스택의 코드 변형을 배제하여 NVMe FDP 기술의 실무 진입 장벽을 완전히 허물었습니다.</li>
+                  <li><strong>Operator-Driven 아키텍처:</strong> 시스템 운영자 관점의 매크로(Macro) 자원 경계를 물리 매체(NAND)까지 1:1로 전달하는 효율적 아키텍처를 제시했습니다.</li>
+                  <li><strong>정책적 교훈 도출:</strong> "FDP는 하드웨어가 아니라 정책이다." 올바른 매핑 없이 스트림 자원만 늘리는 것은 오히려 성능을 파괴함을 실증했습니다.</li>
                 </ul>
               </div>
-              <div class="card"
-                style="border-color: rgba(129, 140, 248, 0.5); text-align: center; display: flex; flex-direction: column; justify-content: center;">
-                <h3 style="font-size: 1.6rem; color: var(--accent-blue); margin-bottom: 1.2rem; justify-content: center;">Q &
-                  A</h3>
+              <div class="card" style="border-color: rgba(129, 140, 248, 0.5); text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                <h3 style="font-size: 1.6rem; color: var(--accent-blue); margin-bottom: 1.2rem; justify-content: center;">Q & A</h3>
                 <p style="color: var(--text-main); font-weight: 500; font-size: 1.1rem;">경청해 주셔서 대단히 감사합니다.</p>
-                <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.8rem;">논문의 설계 및 구현 사항과 관련한 질문을 환영합니다.
-                </p>
-              </div>
-            </div>
-    </div>
-    <!-- Slide 16 -->
-    <div class="slide" id="slide-16">
-      <div class="slide-header">
-              <h2>한계점 및 향후 과제 (Limitations & Future Work)</h2>
-              <div class="slide-subtitle">cgroup 경계의 한계와 마이크로-매크로 계층의 조화</div>
-            </div>
-            <div class="slide-body">
-              <div class="card" style="padding: 2.5rem; border-color: rgba(245, 158, 11, 0.4);">
-                <h3 style="color: #f59e0b; margin-bottom: 1.5rem;">cgroup이 항상 Lifetime을 대변하지는 않음</h3>
-                <ul style="font-size: 1.15rem; line-height: 2.2;">
-                  <li><strong>컨테이너 내부의 데이터 혼재:</strong> cgroup은 훌륭한 매크로(Macro) 격리 기준이지만, 단일 애플리케이션 내부의 세밀한 생명 주기까지 분리하지는 못합니다.</li>
-                  <li><strong>사례 (RocksDB):</strong> 단일 RocksDB cgroup 안에는 수명이 매우 짧은 <code>WAL(Write-Ahead Log)</code>부터, 수명이 긴 <code>SSTable</code>, 그리고 <code>Index</code>와 <code>Temp</code> 데이터가 모두 섞여서 생성됩니다.</li>
-                  <li><strong>한계:</strong> <code>io.stream</code>은 이들을 동일한 cgroup으로 묶어 하나의 스트림에 할당하므로, 애플리케이션 내부에서 발생하는 마이크로(Micro) 단위의 WAF는 해결할 수 없습니다.</li>
-                </ul>
-                
-                <h3 style="color: #34d399; margin-top: 2.5rem; margin-bottom: 1.5rem;">향후 연구 방향 (Future Work)</h3>
-                <ul style="font-size: 1.15rem; line-height: 2.2;">
-                  <li><strong>Macro와 Micro의 직교적 통합 (Orthogonal Composition):</strong> <code>io_uring</code>의 per-I/O 태그를 통한 마이크로 단위 제어와, <code>io.stream</code>의 매크로 단위 제어를 <strong>상호 보완적으로 융합</strong>하는 아키텍처가 필요합니다.</li>
-                  <li>애플리케이션이 명시한 I/O 태그는 유지(Bypass)하되, 미지정된 나머지 트래픽은 cgroup 정책으로 안전하게 Fallback하는 하이브리드 제어 구조가 미래의 FDP 생태계를 완성할 것입니다.</li>
-                </ul>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.8rem;">논문의 설계 및 구현 사항과 관련한 질문을 환영합니다.</p>
               </div>
             </div>
     </div>

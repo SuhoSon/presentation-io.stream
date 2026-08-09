@@ -1,19 +1,33 @@
 <div class="slide-header">
         <h2>성능 평가(Evaluation) 환경 설정</h2>
-        <div class="slide-subtitle">최신 엔터프라이즈 FDP 규격 검증 플랫폼</div>
+        <div class="slide-subtitle">하드웨어 제원 및 5종의 대조군(Baselines) 정의</div>
       </div>
-      <div class="slide-body">
-        <div class="card" style="padding: 2.5rem;">
-          <ul style="font-size: 1.15rem; line-height: 2.2;">
+      <div class="slide-body grid-2">
+        <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
+          <h3 style="margin-bottom: 1.2rem; color: #38bdf8;">시스템 및 하드웨어 스펙</h3>
+          <ul style="font-size: 1.1rem; line-height: 2.0;">
+            <li><strong>CPU / Memory:</strong> Intel Core i9-12900K / 64GB RAM</li>
+            <li><strong>운영체제:</strong> Linux Kernel 7.0 (io.stream 패치 적용)</li>
             <li><strong>스토리지 하드웨어:</strong> Samsung PM9D3a 4TB Datacenter FDP NVMe SSD</li>
-            <li><strong>운영체제 스택:</strong> 커스텀 <code>io.stream</code> 패치가 적용된 Linux Kernel 7.0 환경</li>
-            <li><strong>평가 대조군(Baselines):</strong>
-              <ul style="margin-left: 2rem; margin-top: 0.5rem; line-height: 1.8;">
-                <li><strong>No-FDP:</strong> Conventional SSD (disable FDP mode) (WAF: 1.65)</li>
-                <li style="color: #f87171;"><strong>FDP-default:</strong> Enable FDP mode, but using only default RUH 0 (WAF: 1.65)</li>
-                <li><strong>io.stream:</strong> 제안하는 cgroup 기반의 다중 스트림 데이터 격리 방식 (WAF: 1.00)</li>
-              </ul>
+            <li style="color: #f87171; font-weight: bold; margin-top: 0.5rem; background: rgba(248, 113, 113, 0.1); padding: 0.5rem; border-radius: 4px;">
+              제약 사항: OP(Over-Provisioning) 7%, 총 RUH 8개 (메타데이터용 1개 + 데이터용 7개)
             </li>
+            <li style="margin-top: 1rem;"><strong>평가 기준점 (Ideal WAF):</strong> 쓰기 증폭의 이론적 하한선은 <strong>1.00</strong>입니다.</li>
           </ul>
         </div>
+        
+        <div class="card" style="border-color: rgba(16, 185, 129, 0.4);">
+          <h3 style="margin-bottom: 1.2rem; color: #10b981;">평가 대조군(Baselines) 5종</h3>
+          <ul style="font-size: 1.05rem; line-height: 1.8;">
+            <li><strong>1. No-FDP:</strong> 기존 일반 블록 디바이스 (FDP 비활성화)</li>
+            <li><strong>2. FDP-default:</strong> FDP는 켰으나, 모든 I/O를 1개의 기본 스트림(RUH 0)에 던지는 상태</li>
+            <li><strong>3. Oblivious:</strong> 가용 스트림 7개를 14개 그룹에 규칙 없이 무작정 쏟아붓는 정책 부재 상태</li>
+            <li><strong>4. Blind:</strong> 2개 스트림에 데이터를 묶긴 묶었으나, 수명을 무시하고 임의(Random)로 매핑한 상태</li>
+            <li><strong style="color: #34d399;">5. Coherent (io.stream):</strong> 테넌트별/수명별 명시적 정책에 따라 스트림을 정확히 분배한 이상적 상태</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #f87171; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #f87171;">
+        💡 교훈: 모든 평가는 1.0(Ideal)과 다양한 실패 시나리오(Blind, Oblivious) 사이의 위치를 확인하는 과정입니다.
       </div>

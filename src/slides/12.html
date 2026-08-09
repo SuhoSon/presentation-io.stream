@@ -1,19 +1,36 @@
 <div class="slide-header">
-        <h2>결과 분석 3: 장기 상용 데이터베이스 벤치마크 (12h)</h2>
-        <div class="slide-subtitle">다중 테넌트(Multi-tenant) 클라우드 환경 내 지속 성능 방어력 입증</div>
+        <h2>왜 스트림을 아껴 써야 하는가? (OP Constraint)</h2>
+        <div class="slide-subtitle">스트림 낭비가 펌웨어 내부 가용 자원(Effective OP)에 미치는 치명적 영향</div>
       </div>
-      <div class="slide-body grid-2">
-        <div class="chart-container" style="display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.2);">
-          <img src="stage3.png" alt="Evaluation Line Chart from Paper" style="max-width: 100%; max-height: 100%; object-fit: contain;" />
+      <div class="slide-body grid-3">
+        <div class="card" style="display: flex; flex-direction: column;">
+          <h3 style="text-align:center; color: #94a3b8;">1. No-FDP (글로벌 풀)</h3>
+          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#60a5fa;">최대 (Max)</strong></span>
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#f87171;">수행 불가</strong></span>
+          </div>
+          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">전체 Free Block을 단일 풀로 운용하여 디바이스 내 OP 비율이 극대화되나, 서로 다른 수명의 I/O가 섞여 필연적으로 WAF가 상승합니다.</p>
         </div>
-        <div class="card">
-          <h3>상용 RDBMS / NoSQL 복합 운용 시나리오</h3>
-          <ul>
-            <li>코드 레벨의 FDP 수용이 불가능한 상용 솔루션(RocksDB, Postgres, Kafka, Mongo) 4종을 대상으로, cgroup 단위 격리를 통해 12시간 동안
-              Continuous I/O 벤치마크를 수행했습니다.</li>
-            <li>기존 혼재 방식(회색 점선)은 NAND 단편화 누적으로 인해 점진적으로 WAF 1.7에 수렴하였습니다.</li>
-            <li>반면, io.stream 기반의 격리 적용 시(녹색 실선) 초기 상태의 <strong>WAF 1.2 마진을 워크로드 종료 시점까지 일정하게 유지</strong>하여 높은 시스템 안정성을
-              확인하였습니다.</li>
-          </ul>
+
+        <div class="card" style="border-top: 3px solid #f59e0b; display: flex; flex-direction: column;">
+          <h3 style="text-align:center; color: #f59e0b;">2. FDP (적절한 스트림 수)</h3>
+          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#fbbf24;">안정적 확보</strong></span>
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#34d399;">완벽 격리</strong></span>
+          </div>
+          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">소수의 스트림(예: 2개)만 사용하여 수명이 비슷한 데이터끼리 묶으면(Coherent), 여유로운 Free Block(OP)을 유지하면서도 완벽한 격리가 가능합니다.</p>
         </div>
+
+        <div class="card" style="border-top: 3px solid #ef4444; display: flex; flex-direction: column;">
+          <h3 style="text-align:center; color: #ef4444;">3. FDP (스트림 과다 사용)</h3>
+          <div style="margin: 0.8rem 0; font-size: 0.95rem;">
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; margin-bottom:0.4rem; border-radius:4px;">Effective OP: <strong style="color:#f87171;">고갈 (Starvation)</strong></span>
+            <span style="display:inline-block; width:100%; padding:0.5rem; background:#334155; text-align:center; border-radius:4px;">데이터 격리: <strong style="color:#f87171;">성능 붕괴</strong></span>
+          </div>
+          <p style="font-size:0.9rem; color:#cbd5e1; line-height: 1.8;">각 스트림(RUH)은 <strong>독립된 활성 블록(Open Block)과 개별 GC 풀</strong>을 요구합니다. 많은 스트림을 열수록 펌웨어 내 통합 가용 OP가 조각나고 급감하여 시스템이 마비됩니다.</p>
+        </div>
+      </div>
+      
+      <div style="position: absolute; bottom: 1.5rem; left: 0; right: 0; text-align: center; color: #a78bfa; font-size: 1.4rem; font-weight: bold; padding: 1rem; background: rgba(0,0,0,0.4); border-top: 2px solid #a78bfa;">
+        💡 교훈: SSD의 빈 공간(OP) 제약 때문에 스트림은 "무조건 적게" 써야 한다. (그룹핑 필수)
       </div>
