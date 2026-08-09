@@ -22,8 +22,9 @@
         <div class="card" style="grid-column: span 2; border-color: rgba(56, 189, 248, 0.4);">
           <h3>3. Kernel-Driven 모델 (LBA / Program Context 기반)</h3>
           <ul>
-            <li><strong>사례:</strong> <code>AutoStream</code> (LBA 패턴 추론), <code>PCStream</code> (Issuing Program Context 기반)</li>
-            <li><strong>한계점:</strong> 애플리케이션 수정은 피했으나, 커널 내에서 지속적인 모니터링 연산 및 그룹 재구성 비용(Overhead) 발생. <strong>io.stream</strong>은 cgroup이 이미 제공하는 그룹화 정보를 재사용하여 이 비용을 제거함.</li>
+            <li style="margin-bottom: 0.5rem;"><strong>사례:</strong> <code>AutoStream</code> (LBA 패턴 추론), <code>PCStream</code> (Issuing Program Context 기반)</li>
+            <li style="margin-bottom: 0.5rem;"><strong>운영자(Operator) 제어 불가:</strong> 시스템 관리자가 텐넌트나 워크로드의 특성을 알고 있어도, 커널이 자동으로 추론하므로 <strong>명시적인 정책 개입 및 제어가 불가능</strong>함 (Operator intent 반영 불가).</li>
+            <li><strong>한계점:</strong> 애플리케이션 수정은 피했으나, 커널 내에서 지속적인 모니터링 연산 및 그룹 재구성 비용(Overhead) 발생. <strong>io.stream</strong>은 cgroup이 이미 제공하는 그룹화 정보와 운영자의 명시적 제어를 통해 이를 해결함.</li>
           </ul>
         </div>
       </div>
