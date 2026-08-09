@@ -24,10 +24,10 @@ def build():
         
     final_content = template.replace('    <!-- SLIDES_GO_HERE -->\n', "".join(slides_content))
     
-    with open('slides.html', 'w', encoding='utf-8') as f:
+    with open('index.html', 'w', encoding='utf-8') as f:
         f.write(final_content)
         
-    print(f"Build successful: Merged {len(slides_content)} slides into slides.html")
+    print(f"Build successful: Merged {len(slides_content)} slides into index.html")
 
 if __name__ == "__main__":
     build()
