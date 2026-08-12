@@ -1,9 +1,40 @@
 <div class="slide-header">
-  <h2>배경 ③: cgroup 라벨은 이미 모든 쓰기에 붙어 있다</h2>
-  <div class="slide-subtitle">이 논문 전체가 딛고 서는 사실 하나 — cgroup writeback의 귀속 규칙</div>
+  <h2>배경 ③: 그럼 그 값은 누가 넣는가</h2>
+  <div class="slide-subtitle">채널은 뚫렸는데 정작 넣을 사람이 없습니다. 그런데 넣을 필요가 없는 라벨이 이미 흐르고 있습니다</div>
 </div>
 <div class="slide-body grid-2">
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <div class="card" style="border-color: rgba(248, 113, 113, 0.45);">
+      <h3 style="color: var(--accent-red);">오늘 스트림을 지정하는 유일한 방법</h3>
+      <p style="font-size: 0.97rem;">
+        <code>io_uring</code>의 <strong>per-I/O 쓰기 속성</strong> 하나뿐이고, 이건
+        <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
+      </p>
+      <p style="font-size: 0.97rem; margin-top: 0.7rem;">
+        버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 아예 건드리지 않고 지나가므로
+        <strong style="color: var(--accent-red);">전부 디바이스 기본값으로 떨어집니다.</strong>
+      </p>
+    </div>
+    <div class="card" style="border-color: rgba(251, 191, 36, 0.5);">
+      <h3 style="color: var(--accent-amber);">그래서 실제로는 이런 상황</h3>
+      <p style="font-size: 0.97rem;">
+        FDP를 쓰려면 <strong>앱의 I/O 엔진을 direct I/O + io_uring으로 뜯어고쳐야</strong> 합니다.
+        그런데 현장에 떠 있는 건 대부분 <strong>남이 만든 바이너리</strong>이고, 그것들은 버퍼드 I/O를 씁니다.
+      </p>
+      <p style="font-size: 0.97rem; margin-top: 0.7rem;">
+        <strong>결정권이 앱에 묶여 있는 한, 배포된 워크로드의 대부분은 FDP에 손도 못 댑니다.</strong>
+        이게 이 논문이 파고드는 빈자리입니다.
+      </p>
+    </div>
+  </div>
+
   <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
+    <div class="card" style="padding: 0.9rem 1.2rem; flex: none; border-color: rgba(52, 211, 153, 0.45);">
+      <p style="font-size: 0.97rem;">
+        <strong style="color: var(--accent-green);">그런데</strong> — per-I/O 태깅이 못 가는 바로 그 버퍼드·라이트백 경로에,
+        <strong>cgroup 라벨은 이미 붙어서 흐르고 있습니다.</strong>
+      </p>
+    </div>
     <div class="mermaid" style="flex: 1;">
       graph TD
       APP["Tenant A cgroup<br/>write() — buffered"]
@@ -18,41 +49,18 @@
       style KW fill:#1e293b,stroke:#eab308,stroke-width:2px
       style BIO fill:#0f172a,stroke:#34d399,stroke-width:3px
     </div>
-    <div class="card" style="padding: 0.9rem 1.2rem; flex: none; border-color: rgba(52, 211, 153, 0.45);">
-      <p style="font-size: 0.97rem;">
+    <div class="card" style="padding: 0.9rem 1.2rem; flex: none;">
+      <p style="font-size: 0.95rem;">
         실제로 <strong>쓰기를 내보내는 스레드</strong>는 공용 kworker(root)입니다. 그런데
         <strong>bio에 찍히는 라벨</strong>은 그 페이지를 더럽힌 원래 cgroup입니다.
-        <strong style="color: var(--accent-green);">이 어긋남이 바로 기회입니다.</strong>
-      </p>
-    </div>
-  </div>
-
-  <div style="display: flex; flex-direction: column; gap: 1rem;">
-    <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
-      <h3>cgroup v2 I/O 컨트롤러가 이미 가진 것</h3>
-      <p style="font-size: 0.97rem;">
-        <code>io.weight</code> · <code>io.max</code> · <code>io.latency</code>로 cgroup별 <strong>대역폭과 QoS</strong>를 이미 관리합니다.
-        이 모든 것이 가능한 이유는 <strong>모든 bio가 발행 cgroup의 blkcg와 묶여 있기</strong> 때문입니다.
-      </p>
-      <p style="font-size: 0.97rem; margin-top: 0.7rem; color: var(--accent-green);">
-        <strong>io.stream은 여기에 '배치(placement)'를 한 칸 더하는 일입니다.</strong>
-      </p>
-    </div>
-    <div class="card" style="border-color: rgba(248, 113, 113, 0.4);">
-      <h3>반면 per-I/O 태깅은 여기까지만 닿습니다</h3>
-      <p style="font-size: 0.97rem;">
-        지금 스트림을 지정할 수 있는 유일한 방법은 <code>io_uring</code>의 쓰기 속성인데,
-        이건 <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
-        버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 아예 건드리지 않고 지나가므로
-        <strong style="color: var(--accent-red);">전부 디바이스 기본값으로 떨어집니다.</strong>
-      </p>
-      <p style="font-size: 0.97rem; margin-top: 0.7rem;">
-        정리하면, <strong>per-I/O 태깅이 못 가는 바로 그 경로에 blkcg 라벨은 이미 가 있습니다.</strong>
+        cgroup v2가 <code>io.weight</code>·<code>io.max</code>로 테넌트별 대역폭을 이미 통제할 수 있는 것도 같은 이유입니다.
       </p>
     </div>
   </div>
 </div>
 <div class="takeaway" data-tone="green">💡 배치 정보를 새로 만들 필요가 없다. 필요한 라벨은 이미 모든 데이터 쓰기에 붙어서 흐르고 있다.</div>
 <div class="notes">
+  이 장의 순서가 중요하다. 먼저 "값을 넣을 사람이 없다"는 빈자리를 보여주고, 그 다음에 라벨을 꺼낸다.
   후배들이 여기서 막히면 뒤가 전부 안 들린다. "kworker가 썼는데 왜 A로 기록되나"를 한 번 더 짚고 넘어갈 것.
+  그럼 자연스럽게 다음 질문이 나온다 — "그 라벨을 누가 정하나?" 그게 다음 두 장(관련 연구, 왜 cgroup인가)이다.
 </div>

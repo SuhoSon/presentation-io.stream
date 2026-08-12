@@ -882,19 +882,51 @@
           </div>
         </div>
       </div>
-      <div class="takeaway" data-tone="green">💡 FDP는 "수명이 같은 것끼리 같은 RU에 모아라"라는 <em>지시 채널</em>을 열어줄 뿐이다. 무엇을 모을지는 호스트의 몫이다.</div>
+      <div class="takeaway" data-tone="green">💡 FDP는 <em>지시 채널</em>을 열어줬을 뿐이다. 그럼 그 채널에 값을 넣는 건 누구인가? — 다음 장</div>
       <div class="notes">
-        Linux는 이 지시 채널을 블록 계층의 write stream으로 이미 뚫어 놨다. 문제는 채널이 아니라 "누가 값을 넣느냐"라는 점으로 넘어간다.
+        Linux는 이 지시 채널을 블록 계층의 write stream으로 이미 뚫어 놨다. 그러니 남은 문제는 채널이 아니라 "누가 값을 넣느냐"다.
+        다음 장에서 그 자리가 비어 있다는 걸 보여주고, 그 빈자리에 cgroup을 들이민다.
       </div>
     </div>
     <!-- Slide 5 -->
     <div class="slide" id="slide-5">
       <div class="slide-header">
-        <h2>배경 ③: cgroup 라벨은 이미 모든 쓰기에 붙어 있다</h2>
-        <div class="slide-subtitle">이 논문 전체가 딛고 서는 사실 하나 — cgroup writeback의 귀속 규칙</div>
+        <h2>배경 ③: 그럼 그 값은 누가 넣는가</h2>
+        <div class="slide-subtitle">채널은 뚫렸는데 정작 넣을 사람이 없습니다. 그런데 넣을 필요가 없는 라벨이 이미 흐르고 있습니다</div>
       </div>
       <div class="slide-body grid-2">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <div class="card" style="border-color: rgba(248, 113, 113, 0.45);">
+            <h3 style="color: var(--accent-red);">오늘 스트림을 지정하는 유일한 방법</h3>
+            <p style="font-size: 0.97rem;">
+              <code>io_uring</code>의 <strong>per-I/O 쓰기 속성</strong> 하나뿐이고, 이건
+              <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
+            </p>
+            <p style="font-size: 0.97rem; margin-top: 0.7rem;">
+              버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 아예 건드리지 않고 지나가므로
+              <strong style="color: var(--accent-red);">전부 디바이스 기본값으로 떨어집니다.</strong>
+            </p>
+          </div>
+          <div class="card" style="border-color: rgba(251, 191, 36, 0.5);">
+            <h3 style="color: var(--accent-amber);">그래서 실제로는 이런 상황</h3>
+            <p style="font-size: 0.97rem;">
+              FDP를 쓰려면 <strong>앱의 I/O 엔진을 direct I/O + io_uring으로 뜯어고쳐야</strong> 합니다.
+              그런데 현장에 떠 있는 건 대부분 <strong>남이 만든 바이너리</strong>이고, 그것들은 버퍼드 I/O를 씁니다.
+            </p>
+            <p style="font-size: 0.97rem; margin-top: 0.7rem;">
+              <strong>결정권이 앱에 묶여 있는 한, 배포된 워크로드의 대부분은 FDP에 손도 못 댑니다.</strong>
+              이게 이 논문이 파고드는 빈자리입니다.
+            </p>
+          </div>
+        </div>
+      
         <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
+          <div class="card" style="padding: 0.9rem 1.2rem; flex: none; border-color: rgba(52, 211, 153, 0.45);">
+            <p style="font-size: 0.97rem;">
+              <strong style="color: var(--accent-green);">그런데</strong> — per-I/O 태깅이 못 가는 바로 그 버퍼드·라이트백 경로에,
+              <strong>cgroup 라벨은 이미 붙어서 흐르고 있습니다.</strong>
+            </p>
+          </div>
           <div class="mermaid" style="flex: 1;">
             graph TD
             APP["Tenant A cgroup<br/>write() — buffered"]
@@ -909,43 +941,20 @@
             style KW fill:#1e293b,stroke:#eab308,stroke-width:2px
             style BIO fill:#0f172a,stroke:#34d399,stroke-width:3px
           </div>
-          <div class="card" style="padding: 0.9rem 1.2rem; flex: none; border-color: rgba(52, 211, 153, 0.45);">
-            <p style="font-size: 0.97rem;">
+          <div class="card" style="padding: 0.9rem 1.2rem; flex: none;">
+            <p style="font-size: 0.95rem;">
               실제로 <strong>쓰기를 내보내는 스레드</strong>는 공용 kworker(root)입니다. 그런데
               <strong>bio에 찍히는 라벨</strong>은 그 페이지를 더럽힌 원래 cgroup입니다.
-              <strong style="color: var(--accent-green);">이 어긋남이 바로 기회입니다.</strong>
-            </p>
-          </div>
-        </div>
-      
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
-          <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
-            <h3>cgroup v2 I/O 컨트롤러가 이미 가진 것</h3>
-            <p style="font-size: 0.97rem;">
-              <code>io.weight</code> · <code>io.max</code> · <code>io.latency</code>로 cgroup별 <strong>대역폭과 QoS</strong>를 이미 관리합니다.
-              이 모든 것이 가능한 이유는 <strong>모든 bio가 발행 cgroup의 blkcg와 묶여 있기</strong> 때문입니다.
-            </p>
-            <p style="font-size: 0.97rem; margin-top: 0.7rem; color: var(--accent-green);">
-              <strong>io.stream은 여기에 '배치(placement)'를 한 칸 더하는 일입니다.</strong>
-            </p>
-          </div>
-          <div class="card" style="border-color: rgba(248, 113, 113, 0.4);">
-            <h3>반면 per-I/O 태깅은 여기까지만 닿습니다</h3>
-            <p style="font-size: 0.97rem;">
-              지금 스트림을 지정할 수 있는 유일한 방법은 <code>io_uring</code>의 쓰기 속성인데,
-              이건 <strong>raw 블록/문자 디바이스로 가는 direct I/O</strong>에만 닿습니다.
-              버퍼드 쓰기와 파일시스템(iomap) 경로는 스트림 필드를 아예 건드리지 않고 지나가므로
-              <strong style="color: var(--accent-red);">전부 디바이스 기본값으로 떨어집니다.</strong>
-            </p>
-            <p style="font-size: 0.97rem; margin-top: 0.7rem;">
-              정리하면, <strong>per-I/O 태깅이 못 가는 바로 그 경로에 blkcg 라벨은 이미 가 있습니다.</strong>
+              cgroup v2가 <code>io.weight</code>·<code>io.max</code>로 테넌트별 대역폭을 이미 통제할 수 있는 것도 같은 이유입니다.
             </p>
           </div>
         </div>
       </div>
       <div class="takeaway" data-tone="green">💡 배치 정보를 새로 만들 필요가 없다. 필요한 라벨은 이미 모든 데이터 쓰기에 붙어서 흐르고 있다.</div>
       <div class="notes">
+        이 장의 순서가 중요하다. 먼저 "값을 넣을 사람이 없다"는 빈자리를 보여주고, 그 다음에 라벨을 꺼낸다.
         후배들이 여기서 막히면 뒤가 전부 안 들린다. "kworker가 썼는데 왜 A로 기록되나"를 한 번 더 짚고 넘어갈 것.
+        그럼 자연스럽게 다음 질문이 나온다 — "그 라벨을 누가 정하나?" 그게 다음 두 장(관련 연구, 왜 cgroup인가)이다.
       </div>
     </div>
     <!-- Slide 6 -->
@@ -1226,43 +1235,62 @@
     <div class="slide" id="slide-11">
       <div class="slide-header">
         <h2>평가 설정 — 그리고 왜 이렇게 측정했는가</h2>
-        <div class="slide-subtitle">3단계 실험 구성, 그리고 왜 이렇게 측정했는지</div>
+        <div class="slide-subtitle">플랫폼 · 워크로드 · 측정 방법. 세 가지가 다 맞아야 WAF 숫자를 믿을 수 있습니다</div>
       </div>
-      <div class="slide-body grid-2">
-        <div class="card" style="border-color: rgba(56, 189, 248, 0.4);">
-          <h3 style="color: var(--accent-blue);">플랫폼과 대조군</h3>
-          <ul style="font-size: 0.95rem;">
-            <li><strong>SSD:</strong> Samsung PM9D3a 4TB 데이터센터 FDP NVMe.
-              <strong>OP 7%</strong>, 단일 reclaim group, <strong>RUH 8개 — 기본 1개(비귀속 메타데이터) + 데이터용 7개</strong></li>
-            <li><strong>호스트:</strong> Intel Core i9-12900K / 64GB RAM / 수정된 Linux 7.0</li>
-            <li><strong>대조군은 동일 하드웨어·OP·펌웨어에서:</strong><br>
-              · <strong>No-FDP</strong> — FDP 모드 자체를 끔<br>
-              · <strong>FDP-default</strong> — FDP는 켜고 스트림은 아무도 지정하지 않음.
-              <strong style="color: var(--accent-amber);">오늘 무수정 스택이 FDP 드라이브에서 실제로 보는 상태</strong></li>
-            <li><strong>3단계 실험:</strong> ① raw·ext4·xfs 세 경로 검증 → ② raw에서 매핑 정책 스윕 → ③ 무수정 컨테이너 4종 12시간</li>
-            <li>모든 구성 <strong>3회 반복</strong>, 평균±표준편차 보고</li>
-          </ul>
-        </div>
+      <div class="slide-body" style="justify-content: center;">
+        <div class="grid-3">
+          <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(56, 189, 248, 0.4);">
+            <h3 style="font-size: 1.06rem; color: var(--accent-blue);">플랫폼과 대조군</h3>
+            <ul style="font-size: 0.91rem;">
+              <li><strong>SSD:</strong> Samsung PM9D3a 4TB 데이터센터 FDP NVMe.
+                <strong>OP 7%</strong>, 단일 reclaim group,
+                <strong>RUH 8개 — 기본 1개(비귀속 메타데이터) + 데이터용 7개</strong></li>
+              <li><strong>호스트:</strong> Intel Core i9-12900K / 64GB RAM / 수정된 Linux 7.0</li>
+              <li><strong>대조군은 동일 하드웨어·OP·펌웨어에서:</strong><br>
+                · <strong>No-FDP</strong> — FDP 모드 자체를 끔<br>
+                · <strong>FDP-default</strong> — FDP는 켜고 스트림은 아무도 지정하지 않음.
+                <strong style="color: var(--accent-amber);">오늘 무수정 스택이 FDP 드라이브에서 실제로 보는 상태</strong></li>
+              <li>모든 구성 <strong>3회 반복</strong>, 평균±표준편차 보고</li>
+            </ul>
+          </div>
       
-        <div class="card" style="border-color: rgba(52, 211, 153, 0.4);">
-          <h3 style="color: var(--accent-green);">리뷰어가 파고들 구멍을 미리 막는 법</h3>
-          <ul style="font-size: 0.95rem;">
-            <li><strong>실행할 때마다 <code>nvme format</code> 하고 용량을 꽉 채웁니다.</strong><br>
-              <span style="color: var(--text-muted);">갓 포맷한 상태에서는 WAF가 1 근처라 아무 차이도 안 보입니다. 꽉 채워야 덮어쓰기가 바로 GC를 부릅니다.</span></li>
-            <li><strong><code>nodiscard</code>로 실행합니다.</strong><br>
-              <span style="color: var(--text-muted);">TRIM이 끼면 회수가 배치 덕분인지 호스트가 준 힌트 덕분인지 구분할 수 없습니다.</span></li>
-            <li><strong>파일시스템을 일부러 괴롭힙니다.</strong> <span style="color: var(--text-muted);">(ext4 <code>commit=1</code> 등)
-              jbd2를 쉬지 않고 돌려서 메타데이터 경로가 실제로 일하게 만들려는 것입니다.</span></li>
-            <li><strong>WAF는 호스트가 아니라 디바이스가 잰 값입니다.</strong><br>
-              <span style="color: var(--text-muted);">SMART 로그 02h와 OCP 로그 C0h의 델타를 분당 샘플링해, 정상상태 구간의 비율로 계산합니다.</span></li>
-            <li><strong>실행끼리의 편차와 한 실행 안의 편차를 둘 다 적습니다.</strong><br>
-              <span style="color: var(--text-muted);">"운 좋게 GC 최고점을 찍은 게 아니라 안정된 구간"이라는 걸 보이기 위한 장치입니다.</span></li>
-          </ul>
+          <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(192, 132, 252, 0.45);">
+            <h3 style="font-size: 1.06rem; color: var(--accent-purple);">워크로드 — 수명을 어떻게 만들었나</h3>
+            <ul style="font-size: 0.91rem;">
+              <li><strong>Stage 1 · 2 (fio):</strong> <strong>4 KB 순차 쓰기</strong>,
+                <code style="font-size: 0.82rem;">libaio</code>, <code style="font-size: 0.82rem;">iodepth=256</code>,
+                <strong>실행당 2시간.</strong> raw 경로는 direct, 파일시스템 경로는 buffered.</li>
+              <li><strong>사전에 128 KB 순차 쓰기로 프리컨디셔닝</strong>합니다.</li>
+              <li><strong style="color: var(--accent-purple);">수명은 "영역 크기"로 만듭니다.</strong>
+                hot cgroup은 좁은 영역을 계속 덮어쓰고(빨리 재활용), cold cgroup은 넓은 영역을 훑습니다(늦게 재활용).
+                모든 cgroup이 실행 내내 쉬지 않고 씁니다.</li>
+              <li><strong>Stage 1:</strong> hot 5% / cold 95%의 2테넌트 &nbsp;·&nbsp;
+                <strong>Stage 2:</strong> cgroup 14개 — hot 7개(1%) / cold 7개(13%)</li>
+              <li><strong>Stage 3:</strong> 무수정 컨테이너 4종, ext4 한 볼륨, <strong>12시간</strong> (구성은 부록 B)</li>
+            </ul>
+          </div>
+      
+          <div class="card" style="padding: 1.1rem 1.3rem; border-color: rgba(52, 211, 153, 0.4);">
+            <h3 style="font-size: 1.06rem; color: var(--accent-green);">리뷰어가 파고들 구멍을 미리 막는 법</h3>
+            <ul style="font-size: 0.91rem;">
+              <li><strong>실행할 때마다 <code>nvme format</code> 하고 용량을 꽉 채웁니다.</strong>
+                <span style="color: var(--text-muted);">갓 포맷한 상태에서는 WAF가 1 근처라 아무 차이도 안 보입니다.</span></li>
+              <li><strong><code>nodiscard</code>로 실행합니다.</strong>
+                <span style="color: var(--text-muted);">TRIM이 끼면 회수가 배치 덕분인지 호스트 힌트 덕분인지 구분할 수 없습니다.</span></li>
+              <li><strong>파일시스템을 일부러 괴롭힙니다.</strong>
+                <span style="color: var(--text-muted);">(ext4 <code>commit=1</code> 등) jbd2를 쉬지 않고 돌려 메타데이터 경로가 실제로 일하게 만듭니다.</span></li>
+              <li><strong>WAF는 호스트가 아니라 디바이스가 잰 값입니다.</strong>
+                <span style="color: var(--text-muted);">SMART 02h와 OCP C0h의 델타를 분당 샘플링해 정상상태 구간의 비율로 계산합니다.</span></li>
+              <li><strong>실행끼리의 편차와 한 실행 안의 편차를 둘 다 적습니다.</strong>
+                <span style="color: var(--text-muted);">"운 좋게 GC 최고점을 찍은 게 아니라 안정된 구간"이라는 증명입니다.</span></li>
+            </ul>
+          </div>
         </div>
       </div>
       <div class="takeaway" data-tone="blue">💡 스토리지 실험에서는 <em>측정 이전의 준비</em>가 결과의 신뢰도를 결정한다.</div>
       <div class="notes">
         자기 실험을 설계할 때 그대로 가져다 쓸 체크리스트. 특히 preconditioning과 nodiscard는 빠뜨리면 결과 전체가 무의미해진다.
+        가운데 칸의 "수명을 영역 크기로 만든다"가 이 논문 실험 설계의 핵심 트릭이다. 합성 워크로드로 수명 차이를 만드는 깔끔한 방법이라 기억해 둘 만하다.
       </div>
     </div>
     <!-- Slide 12 -->
@@ -2213,42 +2241,29 @@
     <div class="slide" id="slide-27">
       <div class="slide-header">
         <h2>부록 B. 재현을 위한 설정<span class="appendix-badge">APPENDIX</span></h2>
-        <div class="slide-subtitle">워크로드 구성과 단계별 파라미터입니다</div>
+        <div class="slide-subtitle">Stage 3 컨테이너 구성과 파일시스템 튜닝 <span style="color: var(--text-muted); font-size: 0.95rem;">(fio 구성은 평가 설정 슬라이드에)</span></div>
       </div>
       <div class="slide-body grid-2">
-        <div style="display: flex; flex-direction: column; gap: 0.9rem; min-height: 0;">
-          <div class="card" style="padding: 1.1rem 1.3rem;">
-            <h3 style="font-size: 1.1rem;">Stage 3 — 무수정 컨테이너 4종</h3>
-            <table class="datatable" style="margin-top: 0.2rem;">
-              <thead>
-                <tr><th>앱</th><th>이미지</th><th>벤치마크</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>RocksDB</td><td><code style="font-size: 0.78rem;">alpine:3.20</code><br><span style="color: var(--text-muted); font-size: 0.82rem;">+ db_bench v11.5.0</span></td><td>fillrandom<br><span style="color: var(--text-muted); font-size: 0.82rem;">40억 키</span></td></tr>
-                <tr><td>PostgreSQL</td><td><code style="font-size: 0.78rem;">postgres:15</code></td><td>pgbench<br><span style="color: var(--text-muted); font-size: 0.82rem;">32 클라이언트 / 4 스레드</span></td></tr>
-                <tr><td>Kafka</td><td><code style="font-size: 0.78rem;">apache/kafka:4.2.1</code></td><td>producer-perf-test<br><span style="color: var(--text-muted); font-size: 0.82rem;">1 KB, 스로틀 없음</span></td></tr>
-                <tr><td>MongoDB</td><td><code style="font-size: 0.78rem;">mongo:6.0</code></td><td>bulk insertMany</td></tr>
-              </tbody>
-            </table>
-            <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.6rem;">
-              공식 이미지를 그대로 쓰고, 배치는 컨테이너의 cgroup을 스트림에 매핑하는 것만으로 지정합니다.
-              RocksDB는 direct I/O를 꺼서 flush와 컴팩션 쓰기가 페이지 캐시를 지나가게 만들었습니다.
-            </p>
-          </div>
+        <div class="card" style="padding: 1.1rem 1.3rem;">
+          <h3 style="font-size: 1.1rem;">Stage 3 — 무수정 컨테이너 4종</h3>
+          <table class="datatable" style="margin-top: 0.2rem;">
+            <thead>
+              <tr><th>앱</th><th>이미지</th><th>벤치마크</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>RocksDB</td><td><code style="font-size: 0.78rem;">alpine:3.20</code><br><span style="color: var(--text-muted); font-size: 0.82rem;">+ db_bench v11.5.0</span></td><td>fillrandom<br><span style="color: var(--text-muted); font-size: 0.82rem;">40억 키</span></td></tr>
+              <tr><td>PostgreSQL</td><td><code style="font-size: 0.78rem;">postgres:15</code></td><td>pgbench<br><span style="color: var(--text-muted); font-size: 0.82rem;">32 클라이언트 / 4 스레드</span></td></tr>
+              <tr><td>Kafka</td><td><code style="font-size: 0.78rem;">apache/kafka:4.2.1</code></td><td>producer-perf-test<br><span style="color: var(--text-muted); font-size: 0.82rem;">1 KB, 스로틀 없음</span></td></tr>
+              <tr><td>MongoDB</td><td><code style="font-size: 0.78rem;">mongo:6.0</code></td><td>bulk insertMany</td></tr>
+            </tbody>
+          </table>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.6rem;">
+            공식 이미지를 그대로 쓰고, 배치는 컨테이너의 cgroup을 스트림에 매핑하는 것만으로 지정합니다.
+            RocksDB는 direct I/O를 꺼서 flush와 컴팩션 쓰기가 페이지 캐시를 지나가게 만들었습니다.
+          </p>
         </div>
       
         <div style="display: flex; flex-direction: column; gap: 0.9rem;">
-          <div class="card" style="padding: 1.1rem 1.3rem;">
-            <h3 style="font-size: 1.1rem;">Stage 1 · 2 — fio 구성</h3>
-            <ul style="font-size: 0.93rem;">
-              <li><strong>4 KB 순차 쓰기</strong>, <code>libaio</code>, <code>iodepth=256</code></li>
-              <li>raw 경로는 direct, 파일시스템 경로는 buffered</li>
-              <li>실행당 <strong>2시간</strong>, 사전에 <strong>128 KB 순차 쓰기로 프리컨디셔닝</strong></li>
-              <li>수명 차이는 <strong>영역 크기</strong>로 만듭니다. hot cgroup은 좁은 영역을 계속 덮어쓰고(빨리 재활용), cold cgroup은 넓은 영역을 훑습니다(늦게 재활용).</li>
-              <li><strong>Stage 1:</strong> hot 5% / cold 95%의 2테넌트</li>
-              <li><strong>Stage 2:</strong> cgroup 14개 — hot 7개(1%) / cold 7개(13%)</li>
-            </ul>
-          </div>
           <div class="card" style="padding: 1.1rem 1.3rem;">
             <h3 style="font-size: 1.1rem;">파일시스템 튜닝</h3>
             <ul style="font-size: 0.93rem;">
@@ -2257,10 +2272,21 @@
               <li>성능을 뽑으려는 게 아니라, <strong>저널링을 계속 돌게 해서</strong> 메타데이터 경로가 실제로 일하게 만들려는 설정입니다.</li>
             </ul>
           </div>
+          <div class="card" style="padding: 1.1rem 1.3rem;">
+            <h3 style="font-size: 1.1rem;">단계별로 경로를 나눈 이유</h3>
+            <ul style="font-size: 0.93rem;">
+              <li><strong>Stage 1 — raw · ext4 · xfs:</strong> 제출 시점에 찍은 스트림이
+                <strong>VFS와 라이트백 스택을 통과해 살아남는지</strong> 확인합니다.</li>
+              <li><strong>Stage 2 — raw만:</strong> 파일시스템 효과를 걷어내고
+                <strong>사용자 데이터 배치만</strong> 남겨 매핑 정책을 스윕합니다.</li>
+              <li><strong>Stage 3 — ext4:</strong> jbd2 저널이 <strong>암묵적 메타데이터 격리</strong>를 실제로 자극하게 둡니다
+                (스트림 0이 비귀속 메타데이터를 받습니다).</li>
+            </ul>
+          </div>
         </div>
       </div>
       <div class="notes">
-        "수명 차이를 영역 크기로 만든다"가 이 실험 설계의 핵심이다. 합성 워크로드로 수명 차이를 만드는 깔끔한 방법이라 기억해 둘 만하다.
+        세 단계가 각각 다른 질문을 본다는 걸 짚어줄 것. 같은 플랫폼에서 돌지만 경로를 일부러 다르게 잡았다.
       </div>
     </div>
 </div>
