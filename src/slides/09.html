@@ -41,12 +41,15 @@
       <li><strong>아래 단계에서 흐려지지 않습니다:</strong> 쪼개진 bio는 부모의 스트림을 물려받고,
         스트림이 다른 bio끼리는 <strong>절대 합쳐지지 않습니다.</strong></li>
     </ul>
-    <div style="margin-top: 0.8rem; padding: 0.8rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
-      fast path에서 새로 메모리를 잡는 일이 없습니다. 그래서 오버헤드가 사실상 안 잡힙니다(뒤에서 숫자로).
+    <div style="margin-top: 0.8rem; padding: 0.85rem 1rem; background: rgba(52, 211, 153, 0.1); border-left: 4px solid var(--accent-green); border-radius: 4px; font-size: 0.95rem;">
+      <strong style="color: var(--accent-green);">그래서 비용이 사실상 안 잡힙니다.</strong>
+      bio 하나당 필드 하나를 조건부로 채우는 게 전부이고 fast path에서 메모리를 새로 잡지 않습니다 —
+      기준 대비 <strong>IOPS와 p99 차이 1% 미만.</strong>
     </div>
   </div>
 </div>
 <div class="takeaway" data-tone="green">💡 "어떻게 전달할까"를 풀지 않고, 이미 전달되고 있는 라벨에 <em>올라탄다</em>.</div>
 <div class="notes">
   커널 패치를 제안할 때 "변경 지점이 하나이고 fast path에 할당이 없다"가 왜 중요한 논거인지 같이 설명할 것.
+  커널을 고치자는 논문에 이 숫자가 없으면 리뷰어가 제일 먼저 묻는다. "가볍다"는 주장은 반드시 숫자로 받쳐야 한다.
 </div>
